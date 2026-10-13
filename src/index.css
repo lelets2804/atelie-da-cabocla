@@ -2,9 +2,10 @@
 @import "tailwindcss";
 
 @theme {
-  --color-noite: #1a0b2e;
-  --color-ameixa: #3d1a54;
-  --color-roxo: #6b2d8f;
+  --color-noite: #16241a;
+  --color-musgo: #2b4030;
+  --color-verde: #4f7a4a;
+  --color-verde-claro: #8fb58a;
   --color-ouro: #d4a24c;
   --color-ouro-claro: #f0d28a;
   --color-creme: #fbf3e4;
