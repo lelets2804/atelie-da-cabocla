@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@400;500;600&family=Poppins:wght@300;400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-noite: #1a0b2e;
+  --color-ameixa: #3d1a54;
+  --color-roxo: #6b2d8f;
+  --color-ouro: #d4a24c;
+  --color-ouro-claro: #f0d28a;
+  --color-creme: #fbf3e4;
+  --color-terracota: #b5533c;
+
+  --font-titulo: 'Cinzel', serif;
+  --font-elegante: 'Cormorant Garamond', serif;
+  --font-texto: 'Poppins', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-noite);
+  color: var(--color-creme);
+  font-family: var(--font-texto);
+  overflow-x: hidden;
+}
