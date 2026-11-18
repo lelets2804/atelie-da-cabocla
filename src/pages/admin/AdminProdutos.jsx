@@ -51,6 +51,7 @@ function FormularioProduto({ produto, onSalvar, onFechar }) {
   const [d, setD] = useState(() => (produto ? { ...VAZIO, ...produto, preco: String(produto.preco).replace('.', ',') } : VAZIO))
   const [erro, setErro] = useState('')
   const [lendo, setLendo] = useState(false)
+  const [salvando, setSalvando] = useState(false)
 
   function mudar(nome, valor) {
     setD((atual) => ({
@@ -85,7 +86,7 @@ function FormularioProduto({ produto, onSalvar, onFechar }) {
     }
   }
 
-  function aoEnviar(e) {
+  async function aoEnviar(e) {
     e.preventDefault()
     setErro('')
     const preco = Number(String(d.preco).replace(',', '.'))
@@ -95,8 +96,13 @@ function FormularioProduto({ produto, onSalvar, onFechar }) {
     }
     if (!(preco > 0)) return setErro('Digite um preço válido.')
 
-    const falha = onSalvar({ ...d, nome: d.nome.trim(), preco: Math.round(preco * 100) / 100 })
-    if (falha) setErro(falha)
+    setSalvando(true)
+    try {
+      const falha = await onSalvar({ ...d, nome: d.nome.trim(), preco: Math.round(preco * 100) / 100 })
+      if (falha) setErro(falha)
+    } finally {
+      setSalvando(false)
+    }
   }
 
   return (
@@ -122,7 +128,7 @@ function FormularioProduto({ produto, onSalvar, onFechar }) {
       {/* Foto */}
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <input ref={refArquivo} type="file" accept="image/*" className="hidden" onChange={aoEscolherFoto} />
-        <motion.button type="button" onClick={() => refArquivo.current?.click()} disabled={lendo} className="flex items-center gap-2 rounded-full border border-ouro px-5 py-2 font-titulo text-xs tracking-widest text-ouro-claro disabled:opacity-60" whileHover={{ scale: 1.04, backgroundColor: 'rgba(212,162,76,0.2)' }} whileTap={{ scale: 0.95 }}>
+        <motion.button type="button" onClick={() => refArquivo.current?.click()} disabled={lendo || salvando} className="flex items-center gap-2 rounded-full border border-ouro px-5 py-2 font-titulo text-xs tracking-widest text-ouro-claro disabled:opacity-60" whileHover={{ scale: 1.04, backgroundColor: 'rgba(212,162,76,0.2)' }} whileTap={{ scale: 0.95 }}>
           <ImagePlus className="h-4 w-4" />
           {lendo ? 'LENDO FOTO...' : d.imagem ? 'TROCAR FOTO' : 'ESCOLHER FOTO'}
         </motion.button>
@@ -192,11 +198,11 @@ function FormularioProduto({ produto, onSalvar, onFechar }) {
       {erro && <p className="mt-4 font-texto text-sm text-terracota">{erro}</p>}
 
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <motion.button type="button" onClick={onFechar} className="rounded-full border border-ouro/40 px-6 py-3 font-titulo text-xs tracking-widest text-creme/80" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}>
+        <motion.button type="button" onClick={onFechar} disabled={salvando} className="rounded-full border border-ouro/40 px-6 py-3 font-titulo text-xs tracking-widest text-creme/80 disabled:opacity-60" whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.95 }}>
           CANCELAR
         </motion.button>
-        <motion.button type="submit" disabled={lendo} className="rounded-full bg-gradient-to-r from-ouro to-ouro-claro px-8 py-3 font-titulo text-xs font-bold tracking-widest text-noite disabled:opacity-60" whileHover={{ scale: 1.04, boxShadow: '0 0 25px rgba(212,162,76,0.5)' }} whileTap={{ scale: 0.95 }}>
-          SALVAR PRODUTO
+        <motion.button type="submit" disabled={lendo || salvando} className="rounded-full bg-gradient-to-r from-ouro to-ouro-claro px-8 py-3 font-titulo text-xs font-bold tracking-widest text-noite disabled:opacity-60" whileHover={{ scale: 1.04, boxShadow: '0 0 25px rgba(212,162,76,0.5)' }} whileTap={{ scale: 0.95 }}>
+          {salvando ? 'SALVANDO...' : 'SALVAR PRODUTO'}
         </motion.button>
       </div>
     </form>
@@ -206,6 +212,7 @@ function FormularioProduto({ produto, onSalvar, onFechar }) {
 export default function AdminProdutos() {
   const [lista, setLista] = useState(() => [...PRODUTOS])
   const [busca, setBusca] = useState('')
+  const [aviso, setAviso] = useState('')
   const [janela, setJanela] = useState(null) // { tipo: 'form' | 'excluir', produto }
 
   function atualizar() {
@@ -213,23 +220,26 @@ export default function AdminProdutos() {
   }
 
   // Devolve uma mensagem de erro, ou null se deu certo
-  function aoSalvar(dados) {
-    const resultado = salvarProduto(dados)
+  async function aoSalvar(dados) {
+    const resultado = await salvarProduto(dados)
     if (!resultado.ok) return resultado.erro
     atualizar()
+    setAviso('')
     setJanela(null)
     return null
   }
 
-  function aoExcluir() {
-    excluirProduto(janela.produto.id)
-    atualizar()
+  async function aoExcluir() {
+    const resultado = await excluirProduto(janela.produto.id)
     setJanela(null)
+    atualizar()
+    setAviso(resultado.ok ? '' : resultado.erro)
   }
 
-  function aoAlternarDestaque(id) {
-    alternarDestaque(id)
+  async function aoAlternarDestaque(id) {
+    const resultado = await alternarDestaque(id)
     atualizar()
+    setAviso(resultado.ok ? '' : resultado.erro)
   }
 
   const termo = normalizar(busca)
@@ -260,6 +270,10 @@ export default function AdminProdutos() {
         {lista.length} produtos · {totalDestaques} em destaque
         {totalDestaques > 5 && <span className="text-terracota"> (a página inicial mostra apenas 5)</span>}
       </p>
+
+      {aviso && (
+        <p className="mt-4 rounded-xl border border-terracota/50 bg-terracota/15 px-4 py-3 font-texto text-sm text-terracota">{aviso}</p>
+      )}
 
       {/* Lista */}
       {visiveis.length === 0 ? (

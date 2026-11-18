@@ -1,55 +1,66 @@
-// Catálogo da loja.
-// TEMPORÁRIO: as alterações feitas no painel ficam salvas só neste navegador.
-// Quando o backend estiver pronto, estes dados passam a vir da API.
+import { supabase } from '../lib/supabase'
 
-const CHAVE = 'catalogo'
+// Catálogo da loja, carregado do Supabase quando o site abre (veja main.jsx).
+// Estas listas são alteradas "no lugar" por carregarCatalogo(), por isso as telas
+// sempre enxergam a versão mais recente.
+export const TIPOS = [] // ['Guias', 'Brajás', ...]
+export const LINHAS = {} // { Orixás: ['Iemanjá', ...], Entidades: [...] }
+export const PRODUTOS = [] // [{ id, nome, tipo, linha, divisao, preco, cores, destaque, imagem }]
 
-const PADRAO = {
-  // Tipos de produto
-  tipos: ['Guias', 'Brajás', 'Pulseiras', 'Personalizados'],
+// Números de identificação do banco, usados só pelos serviços ao gravar
+export const IDS = { tipos: {}, linhas: {}, divisoes: {} }
 
-  // Linhas e suas divisões
-  linhas: {
-    Orixás: ['Iemanjá', 'Ogum', 'Oxóssi', 'Xangô', 'Omolu', 'Oxalá', 'Iansã'],
-    Entidades: ['Caboclo', 'Boiadeiro', 'Baiano', 'Erê', 'Preto-Velho', 'Pombogira', 'Exu', 'Malandro', 'Cigano', 'Marinheiro'],
-  },
-
-  // Produtos de exemplo
-  // destaque: true  ->  aparece na página inicial
-  produtos: [
-    { id: 1, nome: 'Guia de Iemanjá', tipo: 'Guias', linha: 'Orixás', divisao: 'Iemanjá', preco: 89.9, cores: ['#4a8fc1', '#16241a'], destaque: true },
-    { id: 2, nome: 'Brajá de Ogum', tipo: 'Brajás', linha: 'Orixás', divisao: 'Ogum', preco: 119.9, cores: ['#2b4fa1', '#2b4030'], destaque: true },
-    { id: 3, nome: 'Pulseira de Oxóssi', tipo: 'Pulseiras', linha: 'Orixás', divisao: 'Oxóssi', preco: 39.9, cores: ['#3f6b4f', '#16241a'], destaque: false },
-    { id: 4, nome: 'Taça de Xangô', tipo: 'Personalizados', linha: 'Orixás', divisao: 'Xangô', preco: 79.9, cores: ['#b5533c', '#2b4030'], destaque: true },
-    { id: 5, nome: 'Guia de Oxalá', tipo: 'Guias', linha: 'Orixás', divisao: 'Oxalá', preco: 94.9, cores: ['#e8dfc8', '#4f7a4a'], destaque: false },
-    { id: 6, nome: 'Guia de Iansã', tipo: 'Guias', linha: 'Orixás', divisao: 'Iansã', preco: 89.9, cores: ['#b5533c', '#d4a24c'], destaque: false },
-    { id: 7, nome: 'Guia de Caboclo', tipo: 'Guias', linha: 'Entidades', divisao: 'Caboclo', preco: 84.9, cores: ['#3f6b4f', '#4f7a4a'], destaque: true },
-    { id: 8, nome: 'Chapéu de Boiadeiro', tipo: 'Personalizados', linha: 'Entidades', divisao: 'Boiadeiro', preco: 99.9, cores: ['#8a5a2b', '#16241a'], destaque: false },
-    { id: 9, nome: 'Pulseira de Preto-Velho', tipo: 'Pulseiras', linha: 'Entidades', divisao: 'Preto-Velho', preco: 34.9, cores: ['#2a2a2a', '#d4a24c'], destaque: false },
-    { id: 10, nome: 'Copo de Pombogira', tipo: 'Personalizados', linha: 'Entidades', divisao: 'Pombogira', preco: 49.9, cores: ['#8f1f3a', '#16241a'], destaque: true },
-    { id: 11, nome: 'Brajá de Exu', tipo: 'Brajás', linha: 'Entidades', divisao: 'Exu', preco: 109.9, cores: ['#8f1f3a', '#16241a'], destaque: false },
-    { id: 12, nome: 'Guia de Cigano', tipo: 'Guias', linha: 'Entidades', divisao: 'Cigano', preco: 89.9, cores: ['#4f7a4a', '#d4a24c'], destaque: false },
-  ],
+function limpar(objeto) {
+  Object.keys(objeto).forEach((chave) => delete objeto[chave])
 }
 
-function ler() {
-  try {
-    const salvo = JSON.parse(localStorage.getItem(CHAVE))
-    if (salvo && salvo.produtos && salvo.tipos && salvo.linhas) return salvo
-  } catch {
-    // ignora e usa o padrão
-  }
-  return PADRAO
-}
+export async function carregarCatalogo() {
+  const [tipos, linhas, divisoes, produtos] = await Promise.all([
+    supabase.from('tipos').select('id, nome').order('id'),
+    supabase.from('linhas').select('id, nome').order('id'),
+    supabase.from('divisoes').select('id, linha_id, nome').order('id'),
+    supabase
+      .from('produtos')
+      .select('id, nome, tipo_id, linha_id, divisao_id, preco, cores, destaque, foto_url')
+      .order('id', { ascending: false }),
+  ])
 
-const inicial = ler()
+  const erro = tipos.error || linhas.error || divisoes.error || produtos.error
+  if (erro) throw erro
 
-// Estas listas são alteradas "no lugar" pelo painel (veja services/catalogo.js),
-// por isso a loja sempre enxerga a versão mais recente.
-export const TIPOS = inicial.tipos
-export const LINHAS = inicial.linhas
-export const PRODUTOS = inicial.produtos
+  const nomeDoTipo = new Map(tipos.data.map((t) => [t.id, t.nome]))
+  const nomeDaLinha = new Map(linhas.data.map((l) => [l.id, l.nome]))
+  const nomeDaDivisao = new Map(divisoes.data.map((d) => [d.id, d.nome]))
 
-export function salvarCatalogo() {
-  localStorage.setItem(CHAVE, JSON.stringify({ tipos: TIPOS, linhas: LINHAS, produtos: PRODUTOS }))
+  TIPOS.splice(0, TIPOS.length, ...tipos.data.map((t) => t.nome))
+
+  limpar(LINHAS)
+  linhas.data.forEach((l) => {
+    LINHAS[l.nome] = divisoes.data.filter((d) => d.linha_id === l.id).map((d) => d.nome)
+  })
+
+  limpar(IDS.tipos)
+  limpar(IDS.linhas)
+  limpar(IDS.divisoes)
+  tipos.data.forEach((t) => (IDS.tipos[t.nome] = t.id))
+  linhas.data.forEach((l) => (IDS.linhas[l.nome] = l.id))
+  divisoes.data.forEach((d) => {
+    IDS.divisoes[`${nomeDaLinha.get(d.linha_id)}|${d.nome}`] = d.id
+  })
+
+  PRODUTOS.splice(
+    0,
+    PRODUTOS.length,
+    ...produtos.data.map((p) => ({
+      id: p.id,
+      nome: p.nome,
+      tipo: nomeDoTipo.get(p.tipo_id) || '',
+      linha: nomeDaLinha.get(p.linha_id) || '',
+      divisao: nomeDaDivisao.get(p.divisao_id) || '',
+      preco: Number(p.preco),
+      cores: p.cores?.length === 2 ? p.cores : ['#4f7a4a', '#16241a'],
+      destaque: p.destaque,
+      imagem: p.foto_url || '',
+    }))
+  )
 }

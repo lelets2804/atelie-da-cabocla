@@ -35,9 +35,9 @@ function ItemEditavel({ nome, detalhe, grande = false, onRenomear, onRemover }) 
   const [texto, setTexto] = useState(nome)
   const [confirmando, setConfirmando] = useState(false)
 
-  function salvar(e) {
+  async function salvar(e) {
     e.preventDefault()
-    if (onRenomear(texto)) setEditando(false)
+    if (await onRenomear(texto)) setEditando(false)
   }
 
   if (editando) {
@@ -114,9 +114,9 @@ function ItemEditavel({ nome, detalhe, grande = false, onRenomear, onRemover }) 
 function NovoItem({ placeholder, onAdicionar }) {
   const [texto, setTexto] = useState('')
 
-  function enviar(e) {
+  async function enviar(e) {
     e.preventDefault()
-    if (onAdicionar(texto)) setTexto('')
+    if (await onAdicionar(texto)) setTexto('')
   }
 
   return (
@@ -173,9 +173,9 @@ export default function AdminCategorias() {
   const [, setVersao] = useState(0)
   const [aviso, setAviso] = useState(null)
 
-  // Executa a ação, atualiza a tela e mostra o erro (se houver)
-  function executar(acao) {
-    const resultado = acao()
+  // Executa a ação (que fala com o banco), atualiza a tela e mostra o erro (se houver)
+  async function executar(acao) {
+    const resultado = await acao()
     setVersao((n) => n + 1)
     if (resultado.ok) {
       setAviso(null)

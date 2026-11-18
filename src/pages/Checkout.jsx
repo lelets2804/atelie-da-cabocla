@@ -13,6 +13,11 @@ const PAGAMENTOS = [
   { id: 'cartao', nome: 'Cartão de crédito', texto: 'Em até 12x', Icone: CreditCard },
 ]
 
+const ESTADOS = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
+  'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+]
+
 function formatarPreco(valor) {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
@@ -117,7 +122,7 @@ export default function Checkout({ itens, onFinalizada }) {
     if (!d.rua.trim() || !d.numero.trim() || !d.bairro.trim() || !d.cidade.trim()) {
       return setErro('Preencha rua, número, bairro e cidade.')
     }
-    if (d.estado.trim().length !== 2) return setErro('Digite a sigla do estado (ex.: SP).')
+    if (!ESTADOS.includes(d.estado.trim().toUpperCase())) return setErro('Escolha o estado (UF).')
 
     const endereco = {
       cep,
@@ -177,7 +182,7 @@ export default function Checkout({ itens, onFinalizada }) {
           transition={{ duration: 0.7 }}
         >
           <motion.div
-            className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-ouro to-ouro-claro text-noite"
+            className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-ouro to-ouro-claro text-noite"
             initial={{ scale: 0, rotate: -90 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 12 }}
@@ -185,7 +190,7 @@ export default function Checkout({ itens, onFinalizada }) {
             <Check className="h-12 w-12" strokeWidth={2.5} />
           </motion.div>
 
-          <h1 className="mt-6 bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent">
+          <h1 className="mt-6 bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent">
             Pedido recebido!
           </h1>
           <p className="mt-2 font-titulo text-sm text-ouro-claro">
@@ -199,7 +204,7 @@ export default function Checkout({ itens, onFinalizada }) {
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link to="/conta">
               <motion.span
-                className="inline-block rounded-full bg-gradient-to-r from-ouro to-ouro-claro px-8 py-3 font-titulo text-xs font-bold tracking-widest text-noite"
+                className="inline-block rounded-full bg-linear-to-r from-ouro to-ouro-claro px-8 py-3 font-titulo text-xs font-bold tracking-widest text-noite"
                 whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(212,162,76,0.5)' }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -260,7 +265,7 @@ export default function Checkout({ itens, onFinalizada }) {
           transition={{ duration: 0.6 }}
         >
           <p className="font-elegante text-lg italic text-ouro-claro">quase lá</p>
-          <h1 className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent sm:text-4xl">
+          <h1 className="bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent sm:text-4xl">
             Finalizar compra
           </h1>
         </motion.div>
@@ -348,12 +353,18 @@ export default function Checkout({ itens, onFinalizada }) {
                     />
                   </Campo>
                   <Campo rotulo="UF">
-                    <input
-                      className={`${campo} uppercase`}
+                    <select
+                      className={`${campo} [&>option]:bg-noite`}
                       value={d.estado}
-                      onChange={(e) => mudar('estado', e.target.value.slice(0, 2))}
-                      maxLength={2}
-                    />
+                      onChange={(e) => mudar('estado', e.target.value)}
+                    >
+                      <option value="">UF</option>
+                      {ESTADOS.map((uf) => (
+                        <option key={uf} value={uf}>
+                          {uf}
+                        </option>
+                      ))}
+                    </select>
                   </Campo>
                 </div>
               </div>
@@ -472,7 +483,7 @@ export default function Checkout({ itens, onFinalizada }) {
             <motion.button
               type="submit"
               disabled={enviando}
-              className="mt-6 w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60"
+              className="mt-6 w-full rounded-full bg-linear-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60"
               whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }}
               whileTap={{ scale: 0.97 }}
             >

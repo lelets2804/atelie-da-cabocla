@@ -31,13 +31,13 @@ export default function Carrinho({ aberto, onFechar, itens, onAlterar, onRemover
       {aberto && (
         <>
           {/* Fundo escuro */}
-          <motion.div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onFechar} />
+          <motion.div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onFechar} />
 
           {/* Painel */}
-          <motion.aside className="fixed right-0 top-0 z-[70] flex h-full w-full max-w-md flex-col border-l border-ouro/30 bg-noite shadow-2xl" initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 260, damping: 30 }}>
+          <motion.aside className="fixed right-0 top-0 z-70 flex h-full w-full max-w-md flex-col border-l border-ouro/30 bg-noite shadow-2xl" initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 260, damping: 30 }}>
             {/* Cabeçalho */}
             <div className="flex items-center justify-between border-b border-ouro/20 px-6 py-5">
-              <h2 className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-xl font-bold text-transparent">Seu Carrinho</h2>
+              <h2 className="bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-xl font-bold text-transparent">Seu Carrinho</h2>
               <motion.button onClick={onFechar} className="text-ouro-claro" whileHover={{ rotate: 90, scale: 1.2 }} whileTap={{ scale: 0.9 }} aria-label="Fechar carrinho">
                 <X className="h-6 w-6" />
               </motion.button>
@@ -105,7 +105,7 @@ export default function Carrinho({ aberto, onFechar, itens, onAlterar, onRemover
                   </motion.span>
                 </div>
 
-                <motion.button onClick={finalizar} className="w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite" whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }} whileTap={{ scale: 0.97 }}>
+                <motion.button onClick={finalizar} className="w-full rounded-full bg-linear-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite" whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }} whileTap={{ scale: 0.97 }}>
                   FINALIZAR COMPRA
                 </motion.button>
               </div>

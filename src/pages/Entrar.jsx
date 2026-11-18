@@ -26,6 +26,7 @@ export default function Entrar() {
   const [modo, setModo] = useState(local.state?.modo || 'entrar')
   const [dados, setDados] = useState(VAZIO)
   const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
   function mudar(nome, valor) {
     setDados((atual) => ({ ...atual, [nome]: valor }))
@@ -36,7 +37,7 @@ export default function Entrar() {
     setErro('')
   }
 
-  function aoEnviar(e) {
+  async function aoEnviar(e) {
     e.preventDefault()
     setErro('')
 
@@ -56,19 +57,26 @@ export default function Entrar() {
       return setErro('As senhas não conferem.')
     }
 
-    const resultado =
-      modo === 'entrar'
-        ? entrar(dados.email, dados.senha)
-        : criarConta({
-            nome: dados.nome.trim(),
-            whatsapp: dados.whatsapp.replace(/\D/g, ''),
-            email: dados.email,
-            senha: dados.senha,
-          })
+    setEnviando(true)
+    try {
+      const resultado =
+        modo === 'entrar'
+          ? await entrar(dados.email, dados.senha)
+          : await criarConta({
+              nome: dados.nome.trim(),
+              whatsapp: dados.whatsapp.replace(/\D/g, ''),
+              email: dados.email,
+              senha: dados.senha,
+            })
 
-    if (!resultado.ok) return setErro(resultado.erro)
+      if (!resultado.ok) return setErro(resultado.erro)
 
-    navigate(resultado.usuario.papel === 'admin' ? '/admin/pedidos' : destino || '/')
+      navigate(resultado.usuario.papel === 'admin' ? '/admin/pedidos' : destino || '/')
+    } catch {
+      setErro('Não foi possível conectar agora. Verifique sua internet e tente de novo.')
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -136,8 +144,8 @@ export default function Entrar() {
             )}
           </AnimatePresence>
 
-          <motion.button type="submit" className="w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite" whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }} whileTap={{ scale: 0.97 }}>
-            {modo === 'entrar' ? 'ENTRAR' : 'CRIAR MINHA CONTA'}
+          <motion.button type="submit" disabled={enviando} className="w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60" whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }} whileTap={{ scale: 0.97 }}>
+            {enviando ? 'AGUARDE...' : modo === 'entrar' ? 'ENTRAR' : 'CRIAR MINHA CONTA'}
           </motion.button>
         </form>
 

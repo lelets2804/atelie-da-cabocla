@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User, LogOut, LayoutDashboard } from 'lucide-react'
+import LogoGiratorio from './LogoGiratorio'
 
 const LINKS = [
   { nome: 'Início', to: '/' },
@@ -90,15 +91,8 @@ export default function Navbar({ quantidadeCarrinho = 0, onAbrirCarrinho, usuari
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3">
-          <motion.svg viewBox="0 0 200 200" className="h-8 w-8" fill="none" animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}>
-            <circle cx="100" cy="100" r="92" stroke="#d4a24c" strokeWidth="5" strokeDasharray="12 18" />
-            <circle cx="100" cy="100" r="68" stroke="#f0d28a" strokeWidth="4" />
-            {Array.from({ length: 8 }).map((_, i) => (
-              <ellipse key={i} cx="100" cy="100" rx="68" ry="20" stroke="#d4a24c" strokeWidth="4" transform={`rotate(${i * 22.5} 100 100)`} />
-            ))}
-            <circle cx="100" cy="100" r="9" fill="#f0d28a" />
-          </motion.svg>
-          <span className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-lg font-bold text-transparent sm:text-xl">Ateliê da Cabocla</span>
+          <LogoGiratorio />
+          <span className="bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-lg font-bold text-transparent sm:text-xl">Ateliê da Cabocla</span>
         </Link>
 
         {/* Links (desktop) */}
