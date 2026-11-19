@@ -17,12 +17,12 @@ const VAZIO = {
 }
 
 const campo =
-  'w-full rounded-xl border border-ouro/30 bg-noite/70 px-4 py-3 font-texto text-sm text-creme placeholder:text-creme/40 outline-none transition focus:border-ouro focus:shadow-[0_0_20px_rgba(212,162,76,0.25)] [&>option]:bg-noite'
+  'w-full rounded-none border-0 border-b border-creme/20 bg-transparent px-0 py-3 font-texto text-[15px] text-creme placeholder:text-creme/30 outline-none transition-colors focus:border-ouro [&>option]:bg-noite'
 
 function Campo({ rotulo, children }) {
   return (
     <label className="block text-left">
-      <span className="mb-2 block font-texto text-xs uppercase tracking-widest text-ouro/80">
+      <span className="block font-texto text-[11px] font-medium uppercase tracking-[0.2em] text-creme/45">
         {rotulo}
       </span>
       {children}
@@ -101,16 +101,16 @@ export default function PedidoPersonalizado() {
 
   return (
     <motion.div
-      className="mx-auto max-w-2xl rounded-3xl border border-ouro/25 bg-ameixa/40 p-6 backdrop-blur sm:p-10"
+      className="border border-linha bg-musgo/50 p-6 sm:p-10"
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.8 }}
     >
-      <h3 className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-2xl font-bold text-transparent sm:text-3xl">
+      <h3 className="font-elegante text-3xl font-medium text-creme sm:text-4xl">
         Peça personalizada
       </h3>
-      <p className="mt-2 font-elegante text-lg text-creme/80">
+      <p className="mt-2 font-texto text-sm text-creme/55">
         Conte como você imagina a sua peça e a gente entra em contato.
       </p>
 
@@ -124,31 +124,29 @@ export default function PedidoPersonalizado() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-ouro to-ouro-claro text-noite"
+              className="flex h-16 w-16 items-center justify-center rounded-full border border-ouro text-ouro"
               initial={{ scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200, damping: 12 }}
             >
-              <Check className="h-10 w-10" strokeWidth={2.5} />
+              <Check className="h-7 w-7" strokeWidth={1.5} />
             </motion.div>
-            <p className="font-elegante text-2xl text-creme">Pedido enviado com sucesso!</p>
+            <p className="font-elegante text-3xl text-creme">Pedido enviado!</p>
             <p className="font-texto text-sm text-creme/70">
               Em breve falaremos com você pelo WhatsApp.
             </p>
             <motion.button
               onClick={() => setEnviado(false)}
-              className="mt-2 rounded-full border border-ouro px-6 py-2 font-titulo text-xs tracking-widest text-ouro-claro"
-              whileHover={{ scale: 1.05, backgroundColor: 'rgba(212,162,76,0.2)' }}
-              whileTap={{ scale: 0.95 }}
+              className="mt-2 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-creme/70 underline decoration-ouro/60 underline-offset-[6px] hover:text-creme"
             >
-              FAZER OUTRO PEDIDO
+              Fazer outro pedido
             </motion.button>
           </motion.div>
         ) : (
           <motion.form
             key="form"
             onSubmit={aoEnviar}
-            className="mt-8 grid gap-5 sm:grid-cols-2"
+            className="mt-10 grid gap-x-8 gap-y-7 sm:grid-cols-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -242,12 +240,11 @@ export default function PedidoPersonalizado() {
             <motion.button
               type="submit"
               disabled={enviando}
-              className="flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60 sm:col-span-2"
-              whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }}
-              whileTap={{ scale: 0.97 }}
+              className="mt-2 flex items-center justify-center gap-3 rounded-sm bg-creme py-4 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite transition-colors hover:bg-ouro-claro disabled:opacity-60 sm:col-span-2"
+              whileTap={{ scale: 0.98 }}
             >
               <Send className="h-4 w-4" />
-              {enviando ? 'ENVIANDO...' : 'ENVIAR PEDIDO'}
+              {enviando ? 'Enviando...' : 'Enviar pedido'}
             </motion.button>
           </motion.form>
         )}

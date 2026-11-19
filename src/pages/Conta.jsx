@@ -48,7 +48,7 @@ function Progresso({ etapas, status }) {
   return (
     <div className="mt-5">
       <div className="relative h-1 rounded-full bg-ouro/20">
-        <motion.div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-ouro to-ouro-claro" initial={{ width: 0 }} animate={{ width: `${largura}%` }} transition={{ duration: 1.2, delay: 0.3 }} />
+        <motion.div className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-ouro to-ouro-claro" initial={{ width: 0 }} animate={{ width: `${largura}%` }} transition={{ duration: 1.2, delay: 0.3 }} />
       </div>
       <div className="mt-3 grid text-center" style={{ gridTemplateColumns: `repeat(${etapas.length}, minmax(0, 1fr))` }}>
         {etapas.map(([id, nome], i) => (
@@ -102,7 +102,7 @@ export default function Conta() {
           </motion.div>
           <div>
             <p className="font-elegante text-lg italic text-ouro-claro">minha conta</p>
-            <h1 className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent sm:text-4xl">{usuario.nome}</h1>
+            <h1 className="bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent sm:text-4xl">{usuario.nome}</h1>
           </div>
         </motion.div>
 
