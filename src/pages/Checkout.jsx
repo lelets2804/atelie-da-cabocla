@@ -6,7 +6,7 @@ import { usuarioAtual } from '../services/auth'
 import { criarCompra } from '../services/compras'
 
 const campo =
-  'w-full rounded-xl border border-ouro/30 bg-noite/70 px-4 py-3 font-texto text-sm text-creme placeholder:text-creme/40 outline-none transition focus:border-ouro focus:shadow-[0_0_20px_rgba(212,162,76,0.25)]'
+  'w-full rounded-sm border border-linha bg-noite/70 px-4 py-3 font-texto text-sm text-creme placeholder:text-creme/40 outline-none transition focus:border-ouro'
 
 const PAGAMENTOS = [
   { id: 'pix', nome: 'Pix', texto: 'Pagamento na hora', Icone: QrCode },
@@ -164,8 +164,11 @@ export default function Checkout({ itens, onFinalizada }) {
 
       onFinalizada()
       setCompraFeita(compra)
-    } catch {
-      setErro('Não foi possível confirmar agora. Tente de novo em instantes.')
+    } catch (falha) {
+      console.error('Erro ao criar a compra:', falha)
+      const mensagem = falha?.message || ''
+      const conhecida = ['indisponível', 'inválid', 'vazia', 'Entre na sua conta', 'demais'].some((t) => mensagem.includes(t))
+      setErro(conhecida ? mensagem : 'Não foi possível confirmar agora. Tente de novo em instantes.')
     } finally {
       setEnviando(false)
     }
@@ -176,13 +179,13 @@ export default function Checkout({ itens, onFinalizada }) {
     return (
       <section className="flex min-h-screen items-center justify-center px-6 pb-20 pt-32">
         <motion.div
-          className="w-full max-w-lg rounded-3xl border border-ouro/30 bg-ameixa/40 p-10 text-center backdrop-blur"
+          className="w-full max-w-lg rounded-sm border border-linha bg-ameixa/40 p-10 text-center backdrop-blur"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
         >
           <motion.div
-            className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-ouro to-ouro-claro text-noite"
+            className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-creme text-noite"
             initial={{ scale: 0, rotate: -90 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 12 }}
@@ -190,7 +193,7 @@ export default function Checkout({ itens, onFinalizada }) {
             <Check className="h-12 w-12" strokeWidth={2.5} />
           </motion.div>
 
-          <h1 className="mt-6 bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent">
+          <h1 className="mt-6 font-elegante text-4xl font-medium text-creme">
             Pedido recebido!
           </h1>
           <p className="mt-2 font-titulo text-sm text-ouro-claro">
@@ -204,8 +207,8 @@ export default function Checkout({ itens, onFinalizada }) {
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link to="/conta">
               <motion.span
-                className="inline-block rounded-full bg-linear-to-r from-ouro to-ouro-claro px-8 py-3 font-titulo text-xs font-bold tracking-widest text-noite"
-                whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(212,162,76,0.5)' }}
+                className="inline-block rounded-full bg-creme px-8 py-3 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite"
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 VER MINHA CONTA
@@ -265,7 +268,7 @@ export default function Checkout({ itens, onFinalizada }) {
           transition={{ duration: 0.6 }}
         >
           <p className="font-elegante text-lg italic text-ouro-claro">quase lá</p>
-          <h1 className="bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent sm:text-4xl">
+          <h1 className="font-elegante text-4xl font-medium text-creme sm:text-5xl">
             Finalizar compra
           </h1>
         </motion.div>
@@ -275,7 +278,7 @@ export default function Checkout({ itens, onFinalizada }) {
           <div className="space-y-8">
             {/* Entrega */}
             <motion.div
-              className="rounded-3xl border border-ouro/20 bg-ameixa/30 p-6 sm:p-8"
+              className="rounded-sm border border-linha bg-ameixa/30 p-6 sm:p-8"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
@@ -372,7 +375,7 @@ export default function Checkout({ itens, onFinalizada }) {
 
             {/* Pagamento */}
             <motion.div
-              className="rounded-3xl border border-ouro/20 bg-ameixa/30 p-6 sm:p-8"
+              className="rounded-sm border border-linha bg-ameixa/30 p-6 sm:p-8"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
@@ -387,15 +390,15 @@ export default function Checkout({ itens, onFinalizada }) {
                       key={id}
                       type="button"
                       onClick={() => mudar('pagamento', id)}
-                      className={`relative flex items-center gap-4 rounded-2xl border p-5 text-left transition-colors ${
-                        ativo ? 'border-ouro bg-ouro/10' : 'border-ouro/20 bg-noite/40'
+                      className={`relative flex items-center gap-4 rounded-sm border p-5 text-left transition-colors ${
+                        ativo ? 'border-ouro bg-ouro/10' : 'border-linha bg-noite/40'
                       }`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <div
                         className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border ${
-                          ativo ? 'border-ouro text-ouro-claro' : 'border-ouro/30 text-creme/60'
+                          ativo ? 'border-ouro text-ouro-claro' : 'border-linha text-creme/60'
                         }`}
                       >
                         <Icone className="h-6 w-6" strokeWidth={1.5} />
@@ -427,7 +430,7 @@ export default function Checkout({ itens, onFinalizada }) {
 
           {/* Resumo */}
           <motion.aside
-            className="h-fit rounded-3xl border border-ouro/30 bg-noite/70 p-6 backdrop-blur lg:sticky lg:top-28"
+            className="h-fit rounded-sm border border-linha bg-noite/70 p-6 backdrop-blur lg:sticky lg:top-28"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
@@ -483,8 +486,8 @@ export default function Checkout({ itens, onFinalizada }) {
             <motion.button
               type="submit"
               disabled={enviando}
-              className="mt-6 w-full rounded-full bg-linear-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60"
-              whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }}
+              className="mt-6 w-full rounded-full bg-creme py-4 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite disabled:opacity-60"
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
               {enviando ? 'CONFIRMANDO...' : 'CONFIRMAR PEDIDO'}

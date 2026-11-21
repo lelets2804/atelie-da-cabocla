@@ -1,4 +1,4 @@
-const CHAVE = 'compras'
+import { supabase } from '../lib/supabase'
 
 export const STATUS_COMPRA = [
   { id: 'aguardando', nome: 'Aguardando pagamento' },
@@ -8,35 +8,67 @@ export const STATUS_COMPRA = [
   { id: 'cancelado', nome: 'Cancelado' },
 ]
 
-export function listarCompras() {
-  try {
-    return JSON.parse(localStorage.getItem(CHAVE)) || []
-  } catch {
-    return []
+const CAMPOS = `
+  id, usuario_id, usuario_email, cliente_nome, cliente_whatsapp,
+  endereco, pagamento, total, status, criado_em,
+  itens_pedido ( produto_id, nome, divisao, preco, quantidade )
+`
+
+// Converte a linha do banco para o formato que as páginas usam
+function converter(linha) {
+  return {
+    id: linha.id,
+    usuarioId: linha.usuario_id,
+    usuarioEmail: linha.usuario_email,
+    cliente: { nome: linha.cliente_nome, whatsapp: linha.cliente_whatsapp },
+    endereco: linha.endereco || {},
+    pagamento: linha.pagamento,
+    total: Number(linha.total),
+    status: linha.status,
+    criadoEm: linha.criado_em,
+    itens: (linha.itens_pedido || []).map((i) => ({
+      produtoId: i.produto_id,
+      nome: i.nome,
+      divisao: i.divisao,
+      preco: Number(i.preco),
+      quantidade: i.quantidade,
+    })),
   }
 }
 
-export function listarComprasDoUsuario(usuarioId) {
-  return listarCompras().filter((c) => c.usuarioId === usuarioId)
+// Administradora: o banco devolve todas as compras (as regras de segurança cuidam disso)
+export async function listarCompras() {
+  const { data, error } = await supabase.from('pedidos').select(CAMPOS).order('criado_em', { ascending: false })
+  if (error) throw error
+  return data.map(converter)
 }
 
-// TEMPORÁRIO: por enquanto a compra fica salva só neste navegador.
-// Quando o backend estiver pronto, trocar por chamadas à API, por exemplo:
-//   POST   URL_DA_API/compras        (criar a compra e iniciar o pagamento)
-//   GET    URL_DA_API/compras        (listar: a cliente vê as dela, a administradora vê todas)
-//   PATCH  URL_DA_API/compras/:id    (mudar o status)
+export async function listarComprasDoUsuario(usuarioId) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select(CAMPOS)
+    .eq('usuario_id', usuarioId)
+    .order('criado_em', { ascending: false })
+  if (error) throw error
+  return data.map(converter)
+}
+
+// Cria a compra no banco. O preço e o total são calculados lá, pela tabela de produtos.
 export async function criarCompra(dados) {
-  const compra = {
-    id: Date.now(),
-    ...dados,
-    status: 'aguardando',
-    criadoEm: new Date().toISOString(),
-  }
-  localStorage.setItem(CHAVE, JSON.stringify([compra, ...listarCompras()]))
-  return compra
+  const { data: id, error } = await supabase.rpc('criar_pedido', {
+    p_cliente: dados.cliente,
+    p_endereco: dados.endereco,
+    p_pagamento: dados.pagamento,
+    p_itens: dados.itens.map((i) => ({ produto_id: i.produtoId, quantidade: i.quantidade })),
+  })
+  if (error) throw error
+
+  const { data, error: erroLeitura } = await supabase.from('pedidos').select(CAMPOS).eq('id', id).single()
+  if (erroLeitura) throw erroLeitura
+  return converter(data)
 }
 
-export function atualizarStatusCompra(id, status) {
-  const atualizadas = listarCompras().map((c) => (c.id === id ? { ...c, status } : c))
-  localStorage.setItem(CHAVE, JSON.stringify(atualizadas))
+export async function atualizarStatusCompra(id, status) {
+  const { error } = await supabase.from('pedidos').update({ status }).eq('id', id)
+  if (error) throw error
 }

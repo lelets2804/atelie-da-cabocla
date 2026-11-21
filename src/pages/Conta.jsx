@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { User, Mail, Phone, ClipboardList, ShoppingBag, MapPin } from 'lucide-react'
@@ -48,7 +49,7 @@ function Progresso({ etapas, status }) {
   return (
     <div className="mt-5">
       <div className="relative h-1 rounded-full bg-ouro/20">
-        <motion.div className="absolute inset-y-0 left-0 rounded-full bg-linear-to-r from-ouro to-ouro-claro" initial={{ width: 0 }} animate={{ width: `${largura}%` }} transition={{ duration: 1.2, delay: 0.3 }} />
+        <motion.div className="absolute inset-y-0 left-0 rounded-full bg-creme" initial={{ width: 0 }} animate={{ width: `${largura}%` }} transition={{ duration: 1.2, delay: 0.3 }} />
       </div>
       <div className="mt-3 grid text-center" style={{ gridTemplateColumns: `repeat(${etapas.length}, minmax(0, 1fr))` }}>
         {etapas.map(([id, nome], i) => (
@@ -61,8 +62,8 @@ function Progresso({ etapas, status }) {
 
 function Dado({ Icone, rotulo, valor }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-ouro/15 bg-noite/50 p-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-ouro/30 text-ouro-claro">
+    <div className="flex items-center gap-4 rounded-sm border border-linha bg-noite/50 p-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-linha text-ouro-claro">
         <Icone className="h-4 w-4" />
       </div>
       <div className="min-w-0">
@@ -84,11 +85,17 @@ function Titulo({ Icone, children }) {
 
 export default function Conta() {
   const usuario = usuarioAtual()
+  const [pedidos, setPedidos] = useState([])
+  const [compras, setCompras] = useState([])
+
+  // Busca as compras e os pedidos da cliente no banco
+  useEffect(() => {
+    if (!usuario) return
+    listarComprasDoUsuario(usuario.id).then(setCompras).catch((e) => console.error('Erro ao carregar compras:', e))
+    listarPedidosDoUsuario(usuario.id).then(setPedidos).catch((e) => console.error('Erro ao carregar pedidos:', e))
+  }, [usuario])
 
   if (!usuario) return null
-
-  const pedidos = listarPedidosDoUsuario(usuario.id)
-  const compras = listarComprasDoUsuario(usuario.id)
 
   return (
     <section className="relative min-h-screen overflow-hidden px-6 pb-24 pt-32">
@@ -102,7 +109,7 @@ export default function Conta() {
           </motion.div>
           <div>
             <p className="font-elegante text-lg italic text-ouro-claro">minha conta</p>
-            <h1 className="bg-linear-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent sm:text-4xl">{usuario.nome}</h1>
+            <h1 className="font-elegante text-4xl font-medium text-creme sm:text-5xl">{usuario.nome}</h1>
           </div>
         </motion.div>
 
@@ -121,7 +128,7 @@ export default function Conta() {
           <Titulo Icone={ShoppingBag}>Minhas compras</Titulo>
 
           {compras.length === 0 ? (
-            <div className="mt-5 rounded-2xl border border-ouro/20 bg-musgo/30 p-8 text-center">
+            <div className="mt-5 rounded-sm border border-linha bg-musgo/30 p-8 text-center">
               <p className="font-elegante text-xl italic text-creme/70">Você ainda não fez nenhuma compra.</p>
               <Link to="/produtos">
                 <motion.span className="mt-5 inline-block rounded-full border border-ouro px-6 py-2 font-titulo text-xs tracking-widest text-ouro-claro" whileHover={{ scale: 1.05, backgroundColor: 'rgba(212,162,76,0.2)' }} whileTap={{ scale: 0.95 }}>
@@ -132,7 +139,7 @@ export default function Conta() {
           ) : (
             <ul className="mt-5 space-y-4">
               {compras.map((c, i) => (
-                <motion.li key={c.id} className="rounded-2xl border border-ouro/20 bg-musgo/40 p-6 backdrop-blur" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + i * 0.1 }}>
+                <motion.li key={c.id} className="rounded-sm border border-linha bg-musgo/40 p-6 backdrop-blur" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + i * 0.1 }}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-titulo text-sm text-ouro-claro">Compra #{String(c.id).slice(-5)}</p>
                     <p className="font-texto text-xs text-creme/50">{new Date(c.criadoEm).toLocaleDateString('pt-BR')}</p>
@@ -147,7 +154,7 @@ export default function Conta() {
                     ))}
                   </ul>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-ouro/15 pt-4">
+                  <div className="mt-4 flex items-center justify-between border-t border-linha pt-4">
                     <span className="font-texto text-xs text-creme/60">{PAGAMENTO[c.pagamento] || c.pagamento}</span>
                     <span className="font-titulo text-lg text-ouro-claro">{formatarPreco(c.total)}</span>
                   </div>
@@ -173,7 +180,7 @@ export default function Conta() {
           <Titulo Icone={ClipboardList}>Meus pedidos personalizados</Titulo>
 
           {pedidos.length === 0 ? (
-            <div className="mt-5 rounded-2xl border border-ouro/20 bg-musgo/30 p-8 text-center">
+            <div className="mt-5 rounded-sm border border-linha bg-musgo/30 p-8 text-center">
               <p className="font-elegante text-xl italic text-creme/70">Você ainda não fez nenhum pedido personalizado.</p>
               <Link to="/#contato">
                 <motion.span className="mt-5 inline-block rounded-full border border-ouro px-6 py-2 font-titulo text-xs tracking-widest text-ouro-claro" whileHover={{ scale: 1.05, backgroundColor: 'rgba(212,162,76,0.2)' }} whileTap={{ scale: 0.95 }}>
@@ -184,7 +191,7 @@ export default function Conta() {
           ) : (
             <ul className="mt-5 space-y-4">
               {pedidos.map((p, i) => (
-                <motion.li key={p.id} className="rounded-2xl border border-ouro/20 bg-musgo/40 p-6 backdrop-blur" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.1 }}>
+                <motion.li key={p.id} className="rounded-sm border border-linha bg-musgo/40 p-6 backdrop-blur" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.1 }}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-titulo text-sm text-ouro-claro">Pedido #{String(p.id).slice(-5)}</p>
                     <p className="font-texto text-xs text-creme/50">{new Date(p.criadoEm).toLocaleDateString('pt-BR')}</p>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, Mail, Phone, Calendar, Inbox } from 'lucide-react'
 import { listarPedidos, atualizarStatus } from '../../services/pedidos'
@@ -35,7 +35,7 @@ function CartaoPedido({ pedido, onMudarStatus }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4 }}
-      className="rounded-2xl border border-ouro/20 bg-ameixa/40 p-5 backdrop-blur sm:p-6"
+      className="rounded-sm border border-linha bg-ameixa/40 p-5 backdrop-blur sm:p-6"
     >
       {/* Topo */}
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -75,7 +75,7 @@ function CartaoPedido({ pedido, onMudarStatus }) {
       <p className="mt-4 font-titulo text-sm text-ouro-claro">
         {[pedido.tipo, pedido.linha, pedido.divisao].filter(Boolean).join(' · ')}
       </p>
-      <p className="mt-2 whitespace-pre-wrap rounded-xl border border-ouro/15 bg-noite/50 p-4 font-texto text-sm leading-relaxed text-creme/85">
+      <p className="mt-2 whitespace-pre-wrap rounded-sm border border-linha bg-noite/50 p-4 font-texto text-sm leading-relaxed text-creme/85">
         {pedido.descricao}
       </p>
 
@@ -88,7 +88,7 @@ function CartaoPedido({ pedido, onMudarStatus }) {
           <select
             value={pedido.status}
             onChange={(e) => onMudarStatus(pedido.id, e.target.value)}
-            className="rounded-xl border border-ouro/30 bg-noite/70 px-4 py-2 font-texto text-sm text-creme outline-none transition focus:border-ouro [&>option]:bg-noite"
+            className="rounded-sm border border-linha bg-noite/70 px-4 py-2 font-texto text-sm text-creme outline-none transition focus:border-ouro [&>option]:bg-noite"
           >
             {STATUS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -102,8 +102,8 @@ function CartaoPedido({ pedido, onMudarStatus }) {
           href={linkWhats(pedido)}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-ouro to-ouro-claro px-6 py-2.5 font-titulo text-xs font-bold tracking-widest text-noite"
-          whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(212,162,76,0.5)' }}
+          className="flex items-center justify-center gap-2 rounded-full bg-creme px-6 py-2.5 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite"
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
           <MessageCircle className="h-4 w-4" />
@@ -115,12 +115,34 @@ function CartaoPedido({ pedido, onMudarStatus }) {
 }
 
 export default function AdminPedidos() {
-  const [pedidos, setPedidos] = useState(() => listarPedidos())
+  const [pedidos, setPedidos] = useState([])
   const [filtro, setFiltro] = useState('todos')
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
 
-  function mudarStatus(id, status) {
-    atualizarStatus(id, status)
-    setPedidos(listarPedidos())
+  const carregar = useCallback(() => {
+    return listarPedidos()
+      .then((lista) => {
+        setPedidos(lista)
+        setErro('')
+      })
+      .catch(() => setErro('Não foi possível carregar os pedidos. Verifique a internet e recarregue a página.'))
+      .finally(() => setCarregando(false))
+  }, [])
+
+  useEffect(() => {
+    carregar()
+  }, [carregar])
+
+  async function mudarStatus(id, status) {
+    // Muda na tela na hora e confirma no banco
+    setPedidos((atual) => atual.map((p) => (p.id === id ? { ...p, status } : p)))
+    try {
+      await atualizarStatus(id, status)
+    } catch {
+      setErro('Não foi possível mudar o status. Tente de novo.')
+      carregar()
+    }
   }
 
   const visiveis = filtro === 'todos' ? pedidos : pedidos.filter((p) => p.status === filtro)
@@ -135,7 +157,7 @@ export default function AdminPedidos() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <h1 className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent">
+      <h1 className="font-elegante text-4xl font-medium text-creme">
         Pedidos personalizados
       </h1>
       <div className="mt-2 h-px w-24 bg-ouro" />
@@ -151,7 +173,7 @@ export default function AdminPedidos() {
             {filtro === f.id && (
               <motion.span
                 layoutId="pedido-filtro"
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-ouro to-ouro-claro"
+                className="absolute inset-0 rounded-full bg-creme"
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               />
             )}
@@ -173,7 +195,11 @@ export default function AdminPedidos() {
             <Inbox className="h-14 w-14" strokeWidth={1.2} />
           </motion.div>
           <p className="font-elegante text-2xl italic text-creme/70">
-            {pedidos.length === 0
+            {carregando
+              ? 'Carregando...'
+              : erro
+              ? erro
+              : pedidos.length === 0
               ? 'Nenhum pedido personalizado por enquanto.'
               : 'Nenhum pedido neste andamento.'}
           </p>
