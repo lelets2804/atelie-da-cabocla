@@ -56,7 +56,11 @@ export async function criarConta({ nome, email, senha, whatsapp }) {
   const { data, error } = await supabase.auth.signUp({
     email: emailLimpo,
     password: senha,
-    options: { data: { nome, whatsapp } },
+    options: {
+      data: { nome, whatsapp },
+      // O link do e-mail de confirmação volta para o mesmo site onde a conta foi criada
+      emailRedirectTo: window.location.origin,
+    },
   })
 
   if (error) return { ok: false, erro: traduzirErro(error) }

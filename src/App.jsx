@@ -22,8 +22,14 @@ function RolarParaOLocal() {
   const { pathname, hash } = useLocation()
 
   useEffect(() => {
-    if (hash) {
-      const elemento = document.querySelector(hash)
+    // Ignora o "#" que o link de confirmação de e-mail traz (não é uma seção da página)
+    if (hash && !hash.includes('=')) {
+      let elemento = null
+      try {
+        elemento = document.querySelector(hash)
+      } catch {
+        elemento = null
+      }
       if (elemento) {
         setTimeout(() => elemento.scrollIntoView({ behavior: 'smooth' }), 50)
         return
