@@ -6,11 +6,16 @@ import { usuarioAtual } from '../services/auth'
 import { criarCompra } from '../services/compras'
 
 const campo =
-  'w-full rounded-xl border border-ouro/30 bg-noite/70 px-4 py-3 font-texto text-sm text-creme placeholder:text-creme/40 outline-none transition focus:border-ouro focus:shadow-[0_0_20px_rgba(212,162,76,0.25)]'
+  'w-full rounded-sm border border-linha bg-noite/70 px-4 py-3 font-texto text-sm text-creme placeholder:text-creme/40 outline-none transition focus:border-ouro'
 
 const PAGAMENTOS = [
   { id: 'pix', nome: 'Pix', texto: 'Pagamento na hora', Icone: QrCode },
   { id: 'cartao', nome: 'Cartão de crédito', texto: 'Em até 12x', Icone: CreditCard },
+]
+
+const ESTADOS = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
+  'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ]
 
 function formatarPreco(valor) {
@@ -117,7 +122,7 @@ export default function Checkout({ itens, onFinalizada }) {
     if (!d.rua.trim() || !d.numero.trim() || !d.bairro.trim() || !d.cidade.trim()) {
       return setErro('Preencha rua, número, bairro e cidade.')
     }
-    if (d.estado.trim().length !== 2) return setErro('Digite a sigla do estado (ex.: SP).')
+    if (!ESTADOS.includes(d.estado.trim().toUpperCase())) return setErro('Escolha o estado (UF).')
 
     const endereco = {
       cep,
@@ -131,20 +136,12 @@ export default function Checkout({ itens, onFinalizada }) {
 
     setEnviando(true)
     try {
+      // O preço NÃO vai daqui: o banco calcula o total pela tabela de produtos
       const compra = await criarCompra({
-        usuarioId: usuario.id,
-        usuarioEmail: usuario.email,
         cliente: { nome: d.nome.trim(), whatsapp },
         endereco,
         pagamento: d.pagamento,
-        itens: itens.map(({ produto, quantidade }) => ({
-          produtoId: produto.id,
-          nome: produto.nome,
-          divisao: produto.divisao,
-          preco: produto.preco,
-          quantidade,
-        })),
-        total,
+        itens: itens.map(({ produto, quantidade }) => ({ produtoId: produto.id, quantidade })),
       })
 
       // Guarda o endereço para preencher sozinho na próxima compra
@@ -159,8 +156,14 @@ export default function Checkout({ itens, onFinalizada }) {
 
       onFinalizada()
       setCompraFeita(compra)
-    } catch {
-      setErro('Não foi possível confirmar agora. Tente de novo em instantes.')
+    } catch (falha) {
+      console.error('Erro ao criar a compra:', falha)
+      // P0001 = mensagem escrita de propósito no banco para a cliente ler (ex.: "peça indisponível")
+      setErro(
+        falha?.code === 'P0001' && falha.message
+          ? falha.message
+          : 'Não foi possível confirmar agora. Tente de novo em instantes.'
+      )
     } finally {
       setEnviando(false)
     }
@@ -171,13 +174,13 @@ export default function Checkout({ itens, onFinalizada }) {
     return (
       <section className="flex min-h-screen items-center justify-center px-6 pb-20 pt-32">
         <motion.div
-          className="w-full max-w-lg rounded-3xl border border-ouro/30 bg-ameixa/40 p-10 text-center backdrop-blur"
+          className="w-full max-w-lg rounded-sm border border-linha bg-ameixa/40 p-10 text-center backdrop-blur"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
         >
           <motion.div
-            className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-ouro to-ouro-claro text-noite"
+            className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-creme text-noite"
             initial={{ scale: 0, rotate: -90 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 12 }}
@@ -185,7 +188,7 @@ export default function Checkout({ itens, onFinalizada }) {
             <Check className="h-12 w-12" strokeWidth={2.5} />
           </motion.div>
 
-          <h1 className="mt-6 bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent">
+          <h1 className="mt-6 font-elegante text-4xl font-medium text-creme">
             Pedido recebido!
           </h1>
           <p className="mt-2 font-titulo text-sm text-ouro-claro">
@@ -199,8 +202,8 @@ export default function Checkout({ itens, onFinalizada }) {
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link to="/conta">
               <motion.span
-                className="inline-block rounded-full bg-gradient-to-r from-ouro to-ouro-claro px-8 py-3 font-titulo text-xs font-bold tracking-widest text-noite"
-                whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(212,162,76,0.5)' }}
+                className="inline-block rounded-full bg-creme px-8 py-3 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite"
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 VER MINHA CONTA
@@ -260,7 +263,7 @@ export default function Checkout({ itens, onFinalizada }) {
           transition={{ duration: 0.6 }}
         >
           <p className="font-elegante text-lg italic text-ouro-claro">quase lá</p>
-          <h1 className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent sm:text-4xl">
+          <h1 className="font-elegante text-4xl font-medium text-creme sm:text-5xl">
             Finalizar compra
           </h1>
         </motion.div>
@@ -270,7 +273,7 @@ export default function Checkout({ itens, onFinalizada }) {
           <div className="space-y-8">
             {/* Entrega */}
             <motion.div
-              className="rounded-3xl border border-ouro/20 bg-ameixa/30 p-6 sm:p-8"
+              className="rounded-sm border border-linha bg-ameixa/30 p-6 sm:p-8"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
@@ -348,12 +351,18 @@ export default function Checkout({ itens, onFinalizada }) {
                     />
                   </Campo>
                   <Campo rotulo="UF">
-                    <input
-                      className={`${campo} uppercase`}
+                    <select
+                      className={`${campo} [&>option]:bg-noite`}
                       value={d.estado}
-                      onChange={(e) => mudar('estado', e.target.value.slice(0, 2))}
-                      maxLength={2}
-                    />
+                      onChange={(e) => mudar('estado', e.target.value)}
+                    >
+                      <option value="">UF</option>
+                      {ESTADOS.map((uf) => (
+                        <option key={uf} value={uf}>
+                          {uf}
+                        </option>
+                      ))}
+                    </select>
                   </Campo>
                 </div>
               </div>
@@ -361,7 +370,7 @@ export default function Checkout({ itens, onFinalizada }) {
 
             {/* Pagamento */}
             <motion.div
-              className="rounded-3xl border border-ouro/20 bg-ameixa/30 p-6 sm:p-8"
+              className="rounded-sm border border-linha bg-ameixa/30 p-6 sm:p-8"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
@@ -376,15 +385,15 @@ export default function Checkout({ itens, onFinalizada }) {
                       key={id}
                       type="button"
                       onClick={() => mudar('pagamento', id)}
-                      className={`relative flex items-center gap-4 rounded-2xl border p-5 text-left transition-colors ${
-                        ativo ? 'border-ouro bg-ouro/10' : 'border-ouro/20 bg-noite/40'
+                      className={`relative flex items-center gap-4 rounded-sm border p-5 text-left transition-colors ${
+                        ativo ? 'border-ouro bg-ouro/10' : 'border-linha bg-noite/40'
                       }`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <div
                         className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border ${
-                          ativo ? 'border-ouro text-ouro-claro' : 'border-ouro/30 text-creme/60'
+                          ativo ? 'border-ouro text-ouro-claro' : 'border-linha text-creme/60'
                         }`}
                       >
                         <Icone className="h-6 w-6" strokeWidth={1.5} />
@@ -411,12 +420,20 @@ export default function Checkout({ itens, onFinalizada }) {
                 Depois de confirmar, você recebe pelo WhatsApp o valor do frete e as instruções
                 para pagar.
               </p>
+              <p className="mt-2 font-texto text-xs text-creme/45">
+                Ao confirmar, você concorda com o uso dos seus dados para processar o pedido,
+                conforme a{' '}
+                <Link to="/privacidade" className="text-ouro-claro underline underline-offset-4">
+                  Política de Privacidade
+                </Link>
+                .
+              </p>
             </motion.div>
           </div>
 
           {/* Resumo */}
           <motion.aside
-            className="h-fit rounded-3xl border border-ouro/30 bg-noite/70 p-6 backdrop-blur lg:sticky lg:top-28"
+            className="h-fit rounded-sm border border-linha bg-noite/70 p-6 backdrop-blur lg:sticky lg:top-28"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
@@ -472,8 +489,8 @@ export default function Checkout({ itens, onFinalizada }) {
             <motion.button
               type="submit"
               disabled={enviando}
-              className="mt-6 w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60"
-              whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }}
+              className="mt-6 w-full rounded-full bg-creme py-4 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite disabled:opacity-60"
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
               {enviando ? 'CONFIRMANDO...' : 'CONFIRMAR PEDIDO'}

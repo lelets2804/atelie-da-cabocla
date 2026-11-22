@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, Mail, Phone, Calendar, MapPin, Inbox } from 'lucide-react'
 import {
@@ -45,7 +45,7 @@ function CartaoCompra({ compra, onMudarStatus }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4 }}
-      className="rounded-2xl border border-ouro/20 bg-ameixa/40 p-5 backdrop-blur sm:p-6"
+      className="rounded-sm border border-linha bg-ameixa/40 p-5 backdrop-blur sm:p-6"
     >
       {/* Topo */}
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -84,10 +84,10 @@ function CartaoCompra({ compra, onMudarStatus }) {
       </div>
 
       {/* Itens */}
-      <ul className="mt-4 space-y-2 rounded-xl border border-ouro/15 bg-noite/50 p-4">
-        {compra.itens.map((item) => (
+      <ul className="mt-4 space-y-2 rounded-sm border border-linha bg-noite/50 p-4">
+        {compra.itens.map((item, n) => (
           <li
-            key={item.produtoId}
+            key={`${item.produtoId ?? 'x'}-${n}`}
             className="flex items-start justify-between gap-3 font-texto text-sm"
           >
             <span className="text-creme/85">
@@ -99,7 +99,7 @@ function CartaoCompra({ compra, onMudarStatus }) {
             </span>
           </li>
         ))}
-        <li className="flex items-center justify-between border-t border-ouro/15 pt-3">
+        <li className="flex items-center justify-between border-t border-linha pt-3">
           <span className="font-texto text-xs text-creme/60">
             {PAGAMENTO[compra.pagamento] || compra.pagamento} · frete a combinar
           </span>
@@ -129,7 +129,7 @@ function CartaoCompra({ compra, onMudarStatus }) {
           <select
             value={compra.status}
             onChange={(ev) => onMudarStatus(compra.id, ev.target.value)}
-            className="rounded-xl border border-ouro/30 bg-noite/70 px-4 py-2 font-texto text-sm text-creme outline-none transition focus:border-ouro [&>option]:bg-noite"
+            className="rounded-sm border border-linha bg-noite/70 px-4 py-2 font-texto text-sm text-creme outline-none transition focus:border-ouro [&>option]:bg-noite"
           >
             {STATUS_COMPRA.map((s) => (
               <option key={s.id} value={s.id}>
@@ -143,8 +143,8 @@ function CartaoCompra({ compra, onMudarStatus }) {
           href={linkWhats(compra)}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-ouro to-ouro-claro px-6 py-2.5 font-titulo text-xs font-bold tracking-widest text-noite"
-          whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(212,162,76,0.5)' }}
+          className="flex items-center justify-center gap-2 rounded-full bg-creme px-6 py-2.5 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite"
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
           <MessageCircle className="h-4 w-4" />
@@ -156,12 +156,34 @@ function CartaoCompra({ compra, onMudarStatus }) {
 }
 
 export default function AdminCompras() {
-  const [compras, setCompras] = useState(() => listarCompras())
+  const [compras, setCompras] = useState([])
   const [filtro, setFiltro] = useState('todos')
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
 
-  function mudarStatus(id, status) {
-    atualizarStatusCompra(id, status)
-    setCompras(listarCompras())
+  const carregar = useCallback(() => {
+    return listarCompras()
+      .then((lista) => {
+        setCompras(lista)
+        setErro('')
+      })
+      .catch(() => setErro('Não foi possível carregar as compras. Verifique a internet e recarregue a página.'))
+      .finally(() => setCarregando(false))
+  }, [])
+
+  useEffect(() => {
+    carregar()
+  }, [carregar])
+
+  async function mudarStatus(id, status) {
+    // Muda na tela na hora e confirma no banco
+    setCompras((atual) => atual.map((c) => (c.id === id ? { ...c, status } : c)))
+    try {
+      await atualizarStatusCompra(id, status)
+    } catch {
+      setErro('Não foi possível mudar o status. Tente de novo.')
+      carregar()
+    }
   }
 
   const visiveis = filtro === 'todos' ? compras : compras.filter((c) => c.status === filtro)
@@ -176,7 +198,7 @@ export default function AdminCompras() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <h1 className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-3xl font-bold text-transparent">
+      <h1 className="font-elegante text-4xl font-medium text-creme">
         Compras
       </h1>
       <div className="mt-2 h-px w-24 bg-ouro" />
@@ -192,7 +214,7 @@ export default function AdminCompras() {
             {filtro === f.id && (
               <motion.span
                 layoutId="compra-filtro"
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-ouro to-ouro-claro"
+                className="absolute inset-0 rounded-full bg-creme"
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               />
             )}
@@ -214,7 +236,11 @@ export default function AdminCompras() {
             <Inbox className="h-14 w-14" strokeWidth={1.2} />
           </motion.div>
           <p className="font-elegante text-2xl italic text-creme/70">
-            {compras.length === 0
+            {carregando
+              ? 'Carregando...'
+              : erro
+              ? erro
+              : compras.length === 0
               ? 'Nenhuma compra por enquanto.'
               : 'Nenhuma compra neste andamento.'}
           </p>
