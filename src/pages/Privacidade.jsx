@@ -1,133 +1,34 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Check } from 'lucide-react'
-import { definirNovaSenha, usuarioAtual } from '../services/auth'
+import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Lock } from 'lucide-react'
+import { EMAIL_CONTATO, NOME_LOJA, POLITICA_ATUALIZADA_EM, RESPONSAVEL } from '../config'
 
-const estiloCampo = 'w-full rounded-xl border border-ouro/30 bg-noite/70 py-3 pl-12 pr-4 font-texto text-sm text-creme placeholder:text-creme/40 outline-none transition focus:border-ouro focus:shadow-[0_0_20px_rgba(212,162,76,0.25)]'
-
-// Página aberta pelo link do e-mail "Esqueci minha senha".
-// O Supabase já deixa a pessoa logada ao abrir o link (veja iniciarSessao em main.jsx);
-// se não houver ninguém logada, o link é inválido ou venceu.
-export default function RedefinirSenha() {
-  const navigate = useNavigate()
-  const usuario = usuarioAtual()
-
-  const [senha, setSenha] = useState('')
-  const [confirmar, setConfirmar] = useState('')
-  const [erro, setErro] = useState('')
-  const [enviando, setEnviando] = useState(false)
-  const [pronto, setPronto] = useState(false)
-
-  async function aoEnviar(e) {
-    e.preventDefault()
-    setErro('')
-
-    if (senha.length < 6) return setErro('A senha precisa ter pelo menos 6 caracteres.')
-    if (senha !== confirmar) return setErro('As senhas não conferem.')
-
-    setEnviando(true)
-    try {
-      const resultado = await definirNovaSenha(senha)
-      if (!resultado.ok) return setErro(resultado.erro)
-      setPronto(true)
-    } catch {
-      setErro('Não foi possível conectar agora. Verifique sua internet e tente de novo.')
-    } finally {
-      setEnviando(false)
-    }
-  }
-
+export default function Privacidade() {
   return (
-    <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_center,var(--color-musgo),var(--color-noite)_70%)] px-6 pb-20 pt-32">
-      <motion.div
-        className="relative w-full max-w-md rounded-3xl border border-ouro/30 bg-noite/70 p-8 text-center shadow-2xl backdrop-blur-xl sm:p-10"
-        initial={{ opacity: 0, y: 40 }}
+    <section className="relative px-6 pb-24 pt-32">
+      <motion.article
+        className="mx-auto max-w-3xl rounded-sm border border-linha bg-ameixa/30 p-6 sm:p-10"
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
       >
-        {pronto ? (
-          <>
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-ouro text-ouro">
-              <Check className="h-7 w-7" strokeWidth={1.5} />
-            </div>
-            <h1 className="mt-5 font-titulo text-2xl font-bold text-ouro-claro">Senha alterada!</h1>
-            <p className="mt-2 font-elegante text-lg text-creme/70">Você já está dentro da sua conta.</p>
-            <button
-              onClick={() => navigate('/')}
-              className="mt-8 w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite"
-            >
-              IR PARA A LOJA
-            </button>
-          </>
-        ) : !usuario ? (
-          <>
-            <h1 className="font-titulo text-2xl font-bold text-ouro-claro">Link inválido ou vencido</h1>
-            <p className="mt-3 font-elegante text-lg text-creme/70">
-              Por segurança, o link para criar uma nova senha vale por pouco tempo e só pode ser usado uma vez.
-            </p>
-            <Link
-              to="/entrar"
-              state={{ modo: 'recuperar' }}
-              className="mt-8 inline-block w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite"
-            >
-              PEDIR UM NOVO LINK
-            </Link>
-          </>
-        ) : (
-          <>
-            <h1 className="font-titulo text-2xl font-bold text-ouro-claro">Nova senha</h1>
-            <p className="mt-1 font-elegante text-lg text-creme/70">Escolha a senha para a conta {usuario.email}</p>
+        <div className="flex items-center gap-3 text-ouro-claro">
+          <Lock className="h-6 w-6" />
+          <h1 className="font-elegante text-3xl sm:text-4xl">Política de Privacidade</h1>
+        </div>
+        <p className="mt-6 font-texto text-sm text-creme/70">Atualizada em {POLITICA_ATUALIZADA_EM}.</p>
 
-            <form onSubmit={aoEnviar} className="mt-6 space-y-4 text-left">
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ouro/70" />
-                <input
-                  className={estiloCampo}
-                  type="password"
-                  placeholder="Nova senha"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  autoComplete="new-password"
-                />
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ouro/70" />
-                <input
-                  className={estiloCampo}
-                  type="password"
-                  placeholder="Confirmar nova senha"
-                  value={confirmar}
-                  onChange={(e) => setConfirmar(e.target.value)}
-                  autoComplete="new-password"
-                />
-              </div>
+        <div className="mt-8 space-y-6 font-elegante text-lg leading-relaxed text-creme/85">
+          <p>Esta política explica como {NOME_LOJA}{RESPONSAVEL ? `, responsável por ${RESPONSAVEL},` : ''} utiliza os dados informados ao navegar e realizar pedidos.</p>
+          <p>Coletamos nome, e-mail, WhatsApp e endereço de entrega para criar sua conta, processar pedidos, calcular a entrega e entrar em contato sobre a compra.</p>
+          <p>Os dados são usados apenas para prestar o serviço solicitado e não são vendidos a terceiros. Serviços de hospedagem e pagamento podem processar dados conforme suas próprias políticas.</p>
+          <p>Você pode pedir acesso, correção ou exclusão dos seus dados por meio do contato informado nesta página{EMAIL_CONTATO ? ': ' : '.'}{EMAIL_CONTATO && <strong className="text-ouro-claro"> {EMAIL_CONTATO}</strong>}</p>
+          <p>Ao utilizar o site e aceitar esta política, você autoriza o tratamento dos dados necessários para concluir seu pedido.</p>
+        </div>
 
-              <AnimatePresence>
-                {erro && (
-                  <motion.p
-                    className="text-center font-texto text-sm text-terracota"
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    {erro}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              <motion.button
-                type="submit"
-                disabled={enviando}
-                className="w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60"
-                whileTap={{ scale: 0.97 }}
-              >
-                {enviando ? 'AGUARDE...' : 'SALVAR NOVA SENHA'}
-              </motion.button>
-            </form>
-          </>
-        )}
-      </motion.div>
+        <Link to="/" className="mt-10 inline-block rounded-full border border-ouro px-8 py-3 font-texto text-xs font-semibold uppercase tracking-widest text-ouro-claro">
+          Voltar para a loja
+        </Link>
+      </motion.article>
     </section>
   )
 }
