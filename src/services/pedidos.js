@@ -39,12 +39,11 @@ export async function listarPedidosDoUsuario(usuarioId) {
   return data.map(converter)
 }
 
-// Status e e-mail são preenchidos pelo próprio banco
+// Dono, e-mail e status são preenchidos pelo próprio banco (não dá para forjar)
 export async function enviarPedido(dados) {
   const { data, error } = await supabase
     .from('pedidos_personalizados')
     .insert({
-      usuario_id: dados.usuarioId,
       nome: dados.nome.trim(),
       whatsapp: dados.whatsapp,
       tipo: dados.tipo || null,
@@ -59,6 +58,21 @@ export async function enviarPedido(dados) {
 }
 
 export async function atualizarStatus(id, status) {
-  const { error } = await supabase.from('pedidos_personalizados').update({ status }).eq('id', id)
+  const { data, error } = await supabase
+    .from('pedidos_personalizados')
+    .update({ status })
+    .eq('id', id)
+    .select('id')
   if (error) throw error
+  if (!data || data.length === 0) throw new Error('Sem permissão para alterar este pedido.')
+}
+
+// Quantos pedidos personalizados ainda não foram vistos (aviso no painel da administradora)
+export async function contarPedidosNovos() {
+  const { count, error } = await supabase
+    .from('pedidos_personalizados')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'novo')
+  if (error) throw error
+  return count || 0
 }

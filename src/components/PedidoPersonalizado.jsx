@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Check } from 'lucide-react'
 import { TIPOS, LINHAS } from '../data/produtos'
@@ -84,16 +84,16 @@ export default function PedidoPersonalizado() {
 
     setEnviando(true)
     try {
-      await enviarPedido({
-        ...dados,
-        whatsapp: digitos,
-        usuarioId: logado.id,
-        usuarioEmail: logado.email,
-      })
+      await enviarPedido({ ...dados, whatsapp: digitos })
       setEnviado(true)
       setDados({ ...VAZIO, nome: logado.nome, whatsapp: logado.whatsapp || '' })
-    } catch {
-      setErro('Não foi possível enviar agora. Tente de novo em instantes.')
+    } catch (falha) {
+      console.error('Erro ao enviar o pedido personalizado:', falha)
+      setErro(
+        falha?.code === 'P0001' && falha.message
+          ? falha.message
+          : 'Não foi possível enviar agora. Tente de novo em instantes.'
+      )
     } finally {
       setEnviando(false)
     }
@@ -112,6 +112,12 @@ export default function PedidoPersonalizado() {
       </h3>
       <p className="mt-2 font-texto text-sm text-creme/55">
         Conte como você imagina a sua peça e a gente entra em contato.
+      </p>
+      <p className="mt-1 font-texto text-xs text-creme/40">
+        Usamos seus dados só para responder ao pedido.{' '}
+        <Link to="/privacidade" className="underline underline-offset-4 hover:text-creme/70">
+          Política de Privacidade
+        </Link>
       </p>
 
       <AnimatePresence mode="wait">

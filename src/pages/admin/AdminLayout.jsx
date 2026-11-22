@@ -1,8 +1,11 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ClipboardList, ShoppingBag, Package, Tags, LogOut, Store } from 'lucide-react'
 import { sair } from '../../services/auth'
 import LogoGiratorio from '../../components/LogoGiratorio'
+import { contarComprasPendentes } from '../../services/compras'
+import { contarPedidosNovos } from '../../services/pedidos'
 
 const ITENS = [
   { to: '/admin/compras', nome: 'Compras', Icone: ShoppingBag },
@@ -13,6 +16,27 @@ const ITENS = [
 
 export default function AdminLayout() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const [pendentes, setPendentes] = useState({ '/admin/compras': 0, '/admin/pedidos': 0 })
+
+  // Aviso no menu: compras esperando pagamento e pedidos personalizados ainda não vistos.
+  // Atualiza ao trocar de aba e a cada minuto.
+  useEffect(() => {
+    let ativo = true
+    function atualizar() {
+      Promise.all([contarComprasPendentes(), contarPedidosNovos()])
+        .then(([compras, pedidos]) => {
+          if (ativo) setPendentes({ '/admin/compras': compras, '/admin/pedidos': pedidos })
+        })
+        .catch(() => {})
+    }
+    atualizar()
+    const relogio = setInterval(atualizar, 60000)
+    return () => {
+      ativo = false
+      clearInterval(relogio)
+    }
+  }, [pathname])
 
   function aoSair() {
     sair()
@@ -54,6 +78,11 @@ export default function AdminLayout() {
                   <span className="relative flex items-center gap-3 whitespace-nowrap">
                     <Icone className="h-4 w-4" />
                     {nome}
+                    {pendentes[to] > 0 && (
+                      <span className="ml-1 rounded-full bg-terracota px-2 py-0.5 font-texto text-[11px] font-semibold leading-none text-creme" title="Aguardando você">
+                        {pendentes[to]}
+                      </span>
+                    )}
                   </span>
                 </>
               )}

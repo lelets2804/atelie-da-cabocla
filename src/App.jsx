@@ -9,6 +9,8 @@ import Produtos from './pages/Produtos'
 import Entrar from './pages/Entrar'
 import Conta from './pages/Conta'
 import Checkout from './pages/Checkout'
+import Privacidade from './pages/Privacidade'
+import RedefinirSenha from './pages/RedefinirSenha'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminCompras from './pages/admin/AdminCompras'
 import AdminPedidos from './pages/admin/AdminPedidos'
@@ -16,6 +18,7 @@ import AdminProdutos from './pages/admin/AdminProdutos'
 import AdminCategorias from './pages/admin/AdminCategorias'
 import RotaProtegida from './pages/admin/RotaProtegida'
 import { usuarioAtual, sair } from './services/auth'
+import { PRODUTOS } from './data/produtos'
 
 // Ao trocar de página, volta ao topo (ou desce até a seção do link, como #sobre)
 function RolarParaOLocal() {
@@ -100,7 +103,18 @@ export default function App() {
     setItens((atual) => atual.filter((i) => i.produto.id !== id))
   }
 
-  const totalItens = itens.reduce((soma, i) => soma + i.quantidade, 0)
+  // A sacola fica salva no navegador, então o preço guardado pode estar velho (ou a peça pode
+  // ter sido apagada). Mostramos sempre o dado atual do catálogo. Quem manda no preço de
+  // verdade é o banco, na hora da compra.
+  const itensAtuais =
+    PRODUTOS.length === 0
+      ? itens
+      : itens.flatMap((i) => {
+          const atual = PRODUTOS.find((p) => p.id === i.produto.id)
+          return atual ? [{ ...i, produto: atual }] : []
+        })
+
+  const totalItens = itensAtuais.reduce((soma, i) => soma + i.quantidade, 0)
 
   // Área do administrador: sem menu, rodapé nem carrinho da loja
   if (pathname.startsWith('/admin')) {
@@ -162,18 +176,21 @@ export default function App() {
             path="/checkout"
             element={
               <RotaCliente>
-                <Checkout itens={itens} onFinalizada={() => setItens([])} />
+                <Checkout itens={itensAtuais} onFinalizada={() => setItens([])} />
               </RotaCliente>
             }
           />
           <Route path="/entrar" element={<Entrar />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+          <Route path="/privacidade" element={<Privacidade />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Rodape />
       <Carrinho
         aberto={carrinhoAberto && !!usuario}
         onFechar={() => setCarrinhoAberto(false)}
-        itens={itens}
+        itens={itensAtuais}
         onAlterar={alterarQuantidade}
         onRemover={remover}
       />

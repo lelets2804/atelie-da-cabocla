@@ -44,8 +44,17 @@ function traduzirErro(erro) {
   if (mensagem.includes('email not confirmed')) {
     return 'Confirme seu e-mail antes de entrar. Procure a mensagem na sua caixa de entrada.'
   }
-  if (mensagem.includes('rate limit') || mensagem.includes('too many')) {
+  if (mensagem.includes('rate limit') || mensagem.includes('too many') || mensagem.includes('security purposes')) {
     return 'Muitas tentativas. Espere um minutinho e tente de novo.'
+  }
+  if (mensagem.includes('different from the old password')) {
+    return 'A nova senha precisa ser diferente da senha atual.'
+  }
+  if (mensagem.includes('at least') && mensagem.includes('characters')) {
+    return 'A senha precisa ter pelo menos 6 caracteres.'
+  }
+  if (mensagem.includes('session') && mensagem.includes('missing')) {
+    return 'O link expirou. Peça um novo em "Esqueci minha senha".'
   }
   return `Erro: ${erro?.message || 'não foi possível concluir agora.'}`
 }
@@ -64,6 +73,12 @@ export async function criarConta({ nome, email, senha, whatsapp }) {
   })
 
   if (error) return { ok: false, erro: traduzirErro(error) }
+
+  // Com a confirmação de e-mail ligada, o Supabase não dá erro quando o e-mail já existe:
+  // devolve um usuário "vazio" (sem identidades). Avisamos para a pessoa entrar.
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    return { ok: false, erro: 'Já existe uma conta com este e-mail. Tente entrar.' }
+  }
 
   let user = data.user
 
@@ -102,4 +117,21 @@ export function sair() {
 
 export function usuarioAtual() {
   return usuario
+}
+
+// "Esqueci minha senha": manda um e-mail com um link que abre /redefinir-senha
+export async function pedirRecuperacaoDeSenha(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/redefinir-senha`,
+  })
+  if (error) return { ok: false, erro: traduzirErro(error) }
+  // Por segurança a resposta é sempre a mesma, exista ou não uma conta com esse e-mail
+  return { ok: true }
+}
+
+// Usada na página /redefinir-senha: a pessoa já chegou logada pelo link do e-mail
+export async function definirNovaSenha(senha) {
+  const { error } = await supabase.auth.updateUser({ password: senha })
+  if (error) return { ok: false, erro: traduzirErro(error) }
+  return { ok: true }
 }

@@ -5,9 +5,7 @@ import PedidoPersonalizado from './PedidoPersonalizado'
 import LogoGiratorio from './LogoGiratorio'
 import TituloSecao from './TituloSecao'
 
-// WhatsApp provisório: trocar quando tiver o número definitivo
-const WHATSAPP = '5511937623721' // só números: 55 + DDD + número
-const INSTAGRAM = 'ateliedacabocla' // sem o @
+import { WHATSAPP, INSTAGRAM } from '../config'
 
 const SUAVE = [0.22, 1, 0.36, 1]
 
@@ -112,9 +110,12 @@ export default function Rodape() {
           </motion.p>
         </div>
         <div className="border-t border-linha">
-          <p className="mx-auto max-w-7xl px-6 py-6 font-texto text-xs text-creme/35">
-            © {new Date().getFullYear()} Ateliê da Cabocla. Todos os direitos reservados.
-          </p>
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-6 font-texto text-xs text-creme/35">
+            <p>© {new Date().getFullYear()} Ateliê da Cabocla. Todos os direitos reservados.</p>
+            <Link to="/privacidade" className="transition-colors hover:text-creme/70">
+              Política de Privacidade
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

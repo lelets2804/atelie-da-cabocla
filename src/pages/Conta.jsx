@@ -146,8 +146,8 @@ export default function Conta() {
                   </div>
 
                   <ul className="mt-4 space-y-2">
-                    {c.itens.map((item) => (
-                      <li key={item.produtoId} className="flex items-start justify-between gap-3 font-texto text-sm">
+                    {c.itens.map((item, n) => (
+                      <li key={`${item.produtoId ?? 'x'}-${n}`} className="flex items-start justify-between gap-3 font-texto text-sm">
                         <span className="text-creme/85">{item.quantidade} × {item.nome}</span>
                         <span className="shrink-0 text-ouro-claro">{formatarPreco(item.preco * item.quantidade)}</span>
                       </li>

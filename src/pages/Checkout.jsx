@@ -136,20 +136,12 @@ export default function Checkout({ itens, onFinalizada }) {
 
     setEnviando(true)
     try {
+      // O preço NÃO vai daqui: o banco calcula o total pela tabela de produtos
       const compra = await criarCompra({
-        usuarioId: usuario.id,
-        usuarioEmail: usuario.email,
         cliente: { nome: d.nome.trim(), whatsapp },
         endereco,
         pagamento: d.pagamento,
-        itens: itens.map(({ produto, quantidade }) => ({
-          produtoId: produto.id,
-          nome: produto.nome,
-          divisao: produto.divisao,
-          preco: produto.preco,
-          quantidade,
-        })),
-        total,
+        itens: itens.map(({ produto, quantidade }) => ({ produtoId: produto.id, quantidade })),
       })
 
       // Guarda o endereço para preencher sozinho na próxima compra
@@ -166,9 +158,12 @@ export default function Checkout({ itens, onFinalizada }) {
       setCompraFeita(compra)
     } catch (falha) {
       console.error('Erro ao criar a compra:', falha)
-      const mensagem = falha?.message || ''
-      const conhecida = ['indisponível', 'inválid', 'vazia', 'Entre na sua conta', 'demais'].some((t) => mensagem.includes(t))
-      setErro(conhecida ? mensagem : 'Não foi possível confirmar agora. Tente de novo em instantes.')
+      // P0001 = mensagem escrita de propósito no banco para a cliente ler (ex.: "peça indisponível")
+      setErro(
+        falha?.code === 'P0001' && falha.message
+          ? falha.message
+          : 'Não foi possível confirmar agora. Tente de novo em instantes.'
+      )
     } finally {
       setEnviando(false)
     }
@@ -424,6 +419,14 @@ export default function Checkout({ itens, onFinalizada }) {
               <p className="mt-4 font-texto text-xs text-creme/60">
                 Depois de confirmar, você recebe pelo WhatsApp o valor do frete e as instruções
                 para pagar.
+              </p>
+              <p className="mt-2 font-texto text-xs text-creme/45">
+                Ao confirmar, você concorda com o uso dos seus dados para processar o pedido,
+                conforme a{' '}
+                <Link to="/privacidade" className="text-ouro-claro underline underline-offset-4">
+                  Política de Privacidade
+                </Link>
+                .
               </p>
             </motion.div>
           </div>

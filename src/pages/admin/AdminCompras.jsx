@@ -85,9 +85,9 @@ function CartaoCompra({ compra, onMudarStatus }) {
 
       {/* Itens */}
       <ul className="mt-4 space-y-2 rounded-sm border border-linha bg-noite/50 p-4">
-        {compra.itens.map((item) => (
+        {compra.itens.map((item, n) => (
           <li
-            key={item.produtoId}
+            key={`${item.produtoId ?? 'x'}-${n}`}
             className="flex items-start justify-between gap-3 font-texto text-sm"
           >
             <span className="text-creme/85">

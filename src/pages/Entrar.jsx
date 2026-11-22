@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, User, Phone } from 'lucide-react'
-import { entrar, criarConta } from '../services/auth'
+import { entrar, criarConta, pedirRecuperacaoDeSenha } from '../services/auth'
 
 const estiloCampo = 'w-full rounded-xl border border-ouro/30 bg-noite/70 py-3 pl-12 pr-4 font-texto text-sm text-creme placeholder:text-creme/40 outline-none transition focus:border-ouro focus:shadow-[0_0_20px_rgba(212,162,76,0.25)]'
 
@@ -27,6 +27,8 @@ export default function Entrar() {
   const [dados, setDados] = useState(VAZIO)
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [aceito, setAceito] = useState(false)
+  const [linkEnviado, setLinkEnviado] = useState(false)
 
   function mudar(nome, valor) {
     setDados((atual) => ({ ...atual, [nome]: valor }))
@@ -35,11 +37,30 @@ export default function Entrar() {
   function trocarModo(novo) {
     setModo(novo)
     setErro('')
+    setLinkEnviado(false)
   }
 
   async function aoEnviar(e) {
     e.preventDefault()
     setErro('')
+
+    // Esqueci minha senha: só precisa do e-mail
+    if (modo === 'recuperar') {
+      if (!dados.email.includes('@') || !dados.email.includes('.')) {
+        return setErro('Digite o e-mail da sua conta.')
+      }
+      setEnviando(true)
+      try {
+        const resultado = await pedirRecuperacaoDeSenha(dados.email)
+        if (!resultado.ok) return setErro(resultado.erro)
+        setLinkEnviado(true)
+      } catch {
+        setErro('Não foi possível conectar agora. Verifique sua internet e tente de novo.')
+      } finally {
+        setEnviando(false)
+      }
+      return
+    }
 
     if (modo === 'criar') {
       if (!dados.nome.trim()) return setErro('Digite seu nome.')
@@ -56,6 +77,9 @@ export default function Entrar() {
     if (modo === 'criar' && dados.senha !== dados.confirmar) {
       return setErro('As senhas não conferem.')
     }
+    if (modo === 'criar' && !aceito) {
+      return setErro('Para criar a conta, aceite a Política de Privacidade.')
+    }
 
     setEnviando(true)
     try {
@@ -71,7 +95,7 @@ export default function Entrar() {
 
       if (!resultado.ok) return setErro(resultado.erro)
 
-      navigate(resultado.usuario.papel === 'admin' ? '/admin/pedidos' : destino || '/')
+      navigate(resultado.usuario.papel === 'admin' ? '/admin/compras' : destino || '/')
     } catch {
       setErro('Não foi possível conectar agora. Verifique sua internet e tente de novo.')
     } finally {
@@ -94,8 +118,8 @@ export default function Entrar() {
           <circle cx="100" cy="100" r="7" fill="#f0d28a" />
         </motion.svg>
 
-        <h1 className="mt-5 text-center font-titulo text-2xl font-bold text-ouro-claro">{modo === 'entrar' ? 'Entrar' : 'Criar conta'}</h1>
-        <p className="mt-1 text-center font-elegante text-lg text-creme/70">{modo === 'entrar' ? 'Acompanhe seus pedidos e compre com facilidade' : 'Leva só um minutinho'}</p>
+        <h1 className="mt-5 text-center font-titulo text-2xl font-bold text-ouro-claro">{modo === 'entrar' ? 'Entrar' : modo === 'criar' ? 'Criar conta' : 'Recuperar senha'}</h1>
+        <p className="mt-1 text-center font-elegante text-lg text-creme/70">{modo === 'entrar' ? 'Acompanhe seus pedidos e compre com facilidade' : modo === 'criar' ? 'Leva só um minutinho' : 'Enviamos um link para você criar uma nova senha'}</p>
 
         {aviso && (
           <motion.p className="mt-5 rounded-xl border border-ouro/30 bg-ouro/10 px-4 py-3 text-center font-texto text-sm text-ouro-claro" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
@@ -104,6 +128,7 @@ export default function Entrar() {
         )}
 
         {/* Abas */}
+        {modo !== 'recuperar' && (
         <div className="mt-6 flex rounded-full border border-ouro/25 p-1">
           {[['entrar', 'Entrar'], ['criar', 'Criar conta']].map(([id, nome]) => (
             <button key={id} type="button" onClick={() => trocarModo(id)} className="relative flex-1 rounded-full py-2 font-texto text-sm">
@@ -114,6 +139,7 @@ export default function Entrar() {
             </button>
           ))}
         </div>
+        )}
 
         <form onSubmit={aoEnviar} className="mt-6 space-y-4">
           <AnimatePresence initial={false}>
@@ -126,7 +152,17 @@ export default function Entrar() {
           </AnimatePresence>
 
           <Campo Icone={Mail} type="email" placeholder="E-mail" value={dados.email} onChange={(e) => mudar('email', e.target.value)} autoComplete="email" />
-          <Campo Icone={Lock} type="password" placeholder="Senha" value={dados.senha} onChange={(e) => mudar('senha', e.target.value)} autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'} />
+          {modo !== 'recuperar' && (
+            <Campo Icone={Lock} type="password" placeholder="Senha" value={dados.senha} onChange={(e) => mudar('senha', e.target.value)} autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'} />
+          )}
+
+          {modo === 'entrar' && (
+            <div className="-mt-1 text-right">
+              <button type="button" onClick={() => trocarModo('recuperar')} className="font-texto text-xs text-ouro-claro underline-offset-4 hover:underline">
+                Esqueci minha senha
+              </button>
+            </div>
+          )}
 
           <AnimatePresence initial={false}>
             {modo === 'criar' && (
@@ -135,6 +171,30 @@ export default function Entrar() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {modo === 'criar' && (
+            <label className="flex cursor-pointer items-start gap-3 text-left font-texto text-xs leading-relaxed text-creme/70">
+              <input
+                type="checkbox"
+                checked={aceito}
+                onChange={(e) => setAceito(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#d4a24c]"
+              />
+              <span>
+                Li e concordo com a{' '}
+                <Link to="/privacidade" target="_blank" className="text-ouro-claro underline underline-offset-4">
+                  Política de Privacidade
+                </Link>
+                .
+              </span>
+            </label>
+          )}
+
+          {linkEnviado && (
+            <p className="rounded-xl border border-ouro/30 bg-ouro/10 px-4 py-3 text-center font-texto text-sm text-ouro-claro">
+              Se existir uma conta com esse e-mail, enviamos o link para criar uma nova senha. Confira também a caixa de spam.
+            </p>
+          )}
 
           <AnimatePresence>
             {erro && (
@@ -145,12 +205,12 @@ export default function Entrar() {
           </AnimatePresence>
 
           <motion.button type="submit" disabled={enviando} className="w-full rounded-full bg-gradient-to-r from-ouro to-ouro-claro py-4 font-titulo text-sm font-bold tracking-widest text-noite disabled:opacity-60" whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }} whileTap={{ scale: 0.97 }}>
-            {enviando ? 'AGUARDE...' : modo === 'entrar' ? 'ENTRAR' : 'CRIAR MINHA CONTA'}
+            {enviando ? 'AGUARDE...' : modo === 'entrar' ? 'ENTRAR' : modo === 'criar' ? 'CRIAR MINHA CONTA' : 'ENVIAR LINK'}
           </motion.button>
         </form>
 
         <p className="mt-5 text-center font-texto text-sm text-creme/60">
-          {modo === 'entrar' ? 'Primeira vez aqui?' : 'Já tem conta?'}{' '}
+          {modo === 'entrar' ? 'Primeira vez aqui?' : modo === 'criar' ? 'Já tem conta?' : 'Lembrou da senha?'}{' '}
           <button type="button" onClick={() => trocarModo(modo === 'entrar' ? 'criar' : 'entrar')} className="text-ouro-claro underline-offset-4 hover:underline">
             {modo === 'entrar' ? 'Crie sua conta' : 'Entrar'}
           </button>
