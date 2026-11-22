@@ -1,6 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Lock } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import LogoGiratorio from './LogoGiratorio'
+
+const SUAVE = [0.22, 1, 0.36, 1]
 
 export default function ConviteCadastro({ titulo, texto }) {
   const local = useLocation()
@@ -8,44 +11,35 @@ export default function ConviteCadastro({ titulo, texto }) {
 
   return (
     <motion.div
-      className="mx-auto max-w-2xl rounded-3xl border border-ouro/30 bg-ameixa/40 p-8 text-center backdrop-blur sm:p-12"
-      initial={{ opacity: 0, y: 50 }}
+      className="relative overflow-hidden border border-linha bg-musgo/60 p-8 sm:p-12"
+      initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.8 }}
+      transition={{ duration: 0.9, ease: SUAVE }}
     >
-      <motion.div
-        className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-ouro/40 bg-noite/60 text-ouro-claro"
-        animate={{ y: [0, -8, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <Lock className="h-9 w-9" strokeWidth={1.4} />
-      </motion.div>
+      <LogoGiratorio className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 opacity-[0.07]" />
 
-      <h3 className="mt-6 bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-2xl font-bold text-transparent sm:text-3xl">
-        {titulo}
-      </h3>
-      <p className="mx-auto mt-3 max-w-md font-elegante text-xl text-creme/80">{texto}</p>
+      <div className="relative max-w-xl">
+        <h3 className="font-elegante text-3xl font-medium text-creme sm:text-4xl">{titulo}</h3>
+        <p className="mt-3 font-texto text-sm leading-relaxed text-creme/60 sm:text-base">{texto}</p>
 
-      <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-        <Link to="/entrar" state={{ de, modo: 'criar' }}>
-          <motion.span
-            className="inline-block rounded-full bg-gradient-to-r from-ouro to-ouro-claro px-8 py-3 font-titulo text-xs font-bold tracking-widest text-noite"
-            whileHover={{ scale: 1.06, boxShadow: '0 0 30px rgba(212,162,76,0.6)' }}
-            whileTap={{ scale: 0.95 }}
+        <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <Link
+            to="/entrar"
+            state={{ de, modo: 'criar' }}
+            className="group inline-flex items-center gap-3 rounded-sm bg-creme px-6 py-3.5 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite transition-colors hover:bg-ouro-claro"
           >
-            CRIAR MINHA CONTA
-          </motion.span>
-        </Link>
-        <Link to="/entrar" state={{ de, modo: 'entrar' }}>
-          <motion.span
-            className="inline-block rounded-full border border-ouro px-8 py-3 font-titulo text-xs tracking-widest text-ouro-claro"
-            whileHover={{ scale: 1.06, backgroundColor: 'rgba(212,162,76,0.2)' }}
-            whileTap={{ scale: 0.95 }}
+            Criar minha conta
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+          <Link
+            to="/entrar"
+            state={{ de, modo: 'entrar' }}
+            className="font-texto text-xs font-semibold uppercase tracking-[0.2em] text-creme/70 underline decoration-ouro/60 underline-offset-[6px] transition-colors hover:text-creme"
           >
-            JÁ TENHO CONTA
-          </motion.span>
-        </Link>
+            Já tenho conta
+          </Link>
+        </div>
       </div>
     </motion.div>
   )

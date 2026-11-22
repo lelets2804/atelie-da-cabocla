@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { User, LogOut, LayoutDashboard } from 'lucide-react'
+import { User, LogOut, LayoutDashboard, ShoppingBag } from 'lucide-react'
+import LogoGiratorio from './LogoGiratorio'
 
 const LINKS = [
   { nome: 'Início', to: '/' },
@@ -9,6 +10,8 @@ const LINKS = [
   { nome: 'Sobre', to: '/#sobre' },
   { nome: 'Contato', to: '/#contato' },
 ]
+
+const SUAVE = [0.22, 1, 0.36, 1]
 
 function MenuUsuario({ usuario, onSair }) {
   const [aberto, setAberto] = useState(false)
@@ -25,46 +28,55 @@ function MenuUsuario({ usuario, onSair }) {
 
   if (!usuario) {
     return (
-      <Link to="/entrar" aria-label="Entrar">
-        <motion.span className="flex items-center gap-2 text-ouro-claro" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-          <User className="h-6 w-6" strokeWidth={1.6} />
-          <span className="hidden font-texto text-sm tracking-wider sm:inline">Entrar</span>
-        </motion.span>
+      <Link to="/entrar" className="flex items-center gap-2 text-creme/80 transition-colors hover:text-creme" aria-label="Entrar">
+        <User className="h-4.5 w-4.5" strokeWidth={1.5} />
+        <span className="hidden font-texto text-xs font-medium uppercase tracking-[0.18em] sm:inline">Entrar</span>
       </Link>
     )
   }
 
   const primeiroNome = usuario.nome.split(' ')[0]
+  const itemMenu = 'flex items-center gap-3 px-4 py-3 font-texto text-sm text-creme/75 transition-colors hover:bg-creme/5 hover:text-creme'
 
   return (
     <div ref={ref} className="relative">
-      <motion.button onClick={() => setAberto(!aberto)} className="flex h-9 w-9 items-center justify-center rounded-full border border-ouro bg-ouro/15 font-titulo text-sm text-ouro-claro" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} aria-label="Menu da conta">
+      <button
+        onClick={() => setAberto(!aberto)}
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-creme/25 font-elegante text-base text-creme transition-colors hover:border-ouro"
+        aria-label="Menu da conta"
+        aria-expanded={aberto}
+      >
         {primeiroNome.charAt(0).toUpperCase()}
-      </motion.button>
+      </button>
 
       <AnimatePresence>
         {aberto && (
-          <motion.div className="absolute right-0 top-full mt-3 w-60 overflow-hidden rounded-2xl border border-ouro/30 bg-noite/95 p-2 shadow-2xl backdrop-blur-lg" initial={{ opacity: 0, y: -10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10, scale: 0.95 }}>
-            <div className="px-4 py-3">
+          <motion.div
+            className="absolute right-0 top-full mt-4 w-64 overflow-hidden border border-linha bg-musgo shadow-2xl shadow-black/40"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25, ease: SUAVE }}
+          >
+            <div className="border-b border-linha px-4 py-4">
               <p className="font-elegante text-xl text-creme">Olá, {primeiroNome}</p>
-              <p className="truncate font-texto text-xs text-creme/50">{usuario.email}</p>
+              <p className="truncate font-texto text-xs text-creme/45">{usuario.email}</p>
             </div>
-            <div className="my-1 h-px bg-ouro/20" />
 
-            <Link to="/conta" onClick={() => setAberto(false)} className="flex items-center gap-3 rounded-xl px-4 py-3 font-texto text-sm text-creme/80 transition hover:bg-ouro/10 hover:text-ouro-claro">
-              <User className="h-4 w-4" />
+            <Link to="/conta" onClick={() => setAberto(false)} className={itemMenu}>
+              <User className="h-4 w-4" strokeWidth={1.5} />
               Minha conta
             </Link>
 
             {usuario.papel === 'admin' && (
-              <Link to="/admin" onClick={() => setAberto(false)} className="flex items-center gap-3 rounded-xl px-4 py-3 font-texto text-sm text-creme/80 transition hover:bg-ouro/10 hover:text-ouro-claro">
-                <LayoutDashboard className="h-4 w-4" />
+              <Link to="/admin" onClick={() => setAberto(false)} className={itemMenu}>
+                <LayoutDashboard className="h-4 w-4" strokeWidth={1.5} />
                 Painel administrativo
               </Link>
             )}
 
-            <button onClick={() => { setAberto(false); onSair() }} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 font-texto text-sm text-creme/80 transition hover:bg-terracota/20 hover:text-creme">
-              <LogOut className="h-4 w-4" />
+            <button onClick={() => { setAberto(false); onSair() }} className={`${itemMenu} w-full border-t border-linha`}>
+              <LogOut className="h-4 w-4" strokeWidth={1.5} />
               Sair
             </button>
           </motion.div>
@@ -77,66 +89,82 @@ function MenuUsuario({ usuario, onSair }) {
 export default function Navbar({ quantidadeCarrinho = 0, onAbrirCarrinho, usuario, onSair }) {
   const [rolou, setRolou] = useState(false)
   const [aberto, setAberto] = useState(false)
+  const { pathname, hash } = useLocation()
 
   useEffect(() => {
     const aoRolar = () => setRolou(window.scrollY > 40)
     aoRolar()
-    window.addEventListener('scroll', aoRolar)
+    window.addEventListener('scroll', aoRolar, { passive: true })
     return () => window.removeEventListener('scroll', aoRolar)
   }, [])
 
+  function ativo(to) {
+    if (to === '/') return pathname === '/' && !hash
+    if (to.startsWith('/#')) return pathname === '/' && hash === to.slice(1)
+    return pathname === to
+  }
+
   return (
-    <motion.header className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${rolou ? 'bg-noite/80 py-3 shadow-lg shadow-black/30 backdrop-blur-lg' : 'py-5'}`} initial={{ y: -100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, ease: 'easeOut' }}>
+    <motion.header
+      className={`fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,padding] duration-500 ${
+        rolou || aberto ? 'border-linha bg-noite/85 py-3 backdrop-blur-md' : 'border-transparent py-5'
+      }`}
+      initial={{ y: -40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.9, ease: SUAVE }}
+    >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-3">
-          <motion.svg viewBox="0 0 200 200" className="h-8 w-8" fill="none" animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}>
-            <circle cx="100" cy="100" r="92" stroke="#d4a24c" strokeWidth="5" strokeDasharray="12 18" />
-            <circle cx="100" cy="100" r="68" stroke="#f0d28a" strokeWidth="4" />
-            {Array.from({ length: 8 }).map((_, i) => (
-              <ellipse key={i} cx="100" cy="100" rx="68" ry="20" stroke="#d4a24c" strokeWidth="4" transform={`rotate(${i * 22.5} 100 100)`} />
-            ))}
-            <circle cx="100" cy="100" r="9" fill="#f0d28a" />
-          </motion.svg>
-          <span className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text font-titulo text-lg font-bold text-transparent sm:text-xl">Ateliê da Cabocla</span>
+        <Link to="/" className="group flex items-center gap-3" aria-label="Ateliê da Cabocla, página inicial">
+          <LogoGiratorio className="h-8 w-8 transition-transform duration-1000 ease-out group-hover:rotate-180" />
+          <span className="font-elegante text-xl font-medium tracking-wide text-creme sm:text-[22px]">
+            Ateliê da Cabocla
+          </span>
         </Link>
 
-        {/* Links (desktop) */}
         <ul className="hidden items-center gap-10 md:flex">
           {LINKS.map((link) => (
             <li key={link.nome}>
-              <Link to={link.to} className="group relative font-texto text-sm tracking-wider text-creme/90 transition-colors hover:text-ouro-claro">
+              <Link
+                to={link.to}
+                className={`group relative font-texto text-xs font-medium uppercase tracking-[0.18em] transition-colors ${
+                  ativo(link.to) ? 'text-creme' : 'text-creme/60 hover:text-creme'
+                }`}
+              >
                 {link.nome}
-                <span className="absolute -bottom-1 left-0 h-px w-0 bg-ouro transition-all duration-300 group-hover:w-full" />
+                <span
+                  className={`absolute -bottom-2 left-0 h-px w-full origin-left bg-ouro transition-transform duration-500 ease-out ${
+                    ativo(link.to) ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  }`}
+                />
               </Link>
             </li>
           ))}
         </ul>
 
-        <div className="flex items-center gap-4">
-          {/* Conta */}
+        <div className="flex items-center gap-6">
           <MenuUsuario usuario={usuario} onSair={onSair} />
 
-          {/* Carrinho */}
-          <motion.button onClick={onAbrirCarrinho} className="relative text-ouro-claro" whileHover={{ scale: 1.15, rotate: -8 }} whileTap={{ scale: 0.9 }} aria-label="Abrir carrinho">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 7h12l1 13H5L6 7z" />
-              <path d="M9 7a3 3 0 0 1 6 0" />
-            </svg>
+          <button onClick={onAbrirCarrinho} className="relative text-creme/80 transition-colors hover:text-creme" aria-label="Abrir sacola">
+            <ShoppingBag className="h-4.75 w-4.75" strokeWidth={1.5} />
             <AnimatePresence mode="popLayout">
               {quantidadeCarrinho > 0 && (
-                <motion.span key={quantidadeCarrinho} className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-terracota text-xs font-medium text-creme" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                <motion.span
+                  key={quantidadeCarrinho}
+                  className="absolute -right-2.5 -top-2 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-ouro px-1 font-texto text-[10px] font-semibold text-noite"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                >
                   {quantidadeCarrinho}
                 </motion.span>
               )}
             </AnimatePresence>
-          </motion.button>
+          </button>
 
           {/* Botão do menu (celular) */}
-          <button className="flex h-8 w-8 flex-col items-center justify-center gap-1.5 md:hidden" onClick={() => setAberto(!aberto)} aria-label="Abrir menu">
-            <motion.span className="block h-0.5 w-6 bg-ouro-claro" animate={aberto ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }} />
-            <motion.span className="block h-0.5 w-6 bg-ouro-claro" animate={{ opacity: aberto ? 0 : 1 }} />
-            <motion.span className="block h-0.5 w-6 bg-ouro-claro" animate={aberto ? { rotate: -45, y: -8 } : { rotate: 0, y: 0 }} />
+          <button className="flex h-8 w-8 flex-col items-end justify-center gap-1.7 md:hidden" onClick={() => setAberto(!aberto)} aria-label="Abrir menu" aria-expanded={aberto}>
+            <motion.span className="block h-px w-6 bg-creme" animate={aberto ? { rotate: 45, y: 4, width: 24 } : { rotate: 0, y: 0, width: 24 }} />
+            <motion.span className="block h-px bg-creme" animate={aberto ? { rotate: -45, y: -4, width: 24 } : { rotate: 0, y: 0, width: 16 }} />
           </button>
         </div>
       </nav>
@@ -144,15 +172,30 @@ export default function Navbar({ quantidadeCarrinho = 0, onAbrirCarrinho, usuari
       {/* Menu (celular) */}
       <AnimatePresence>
         {aberto && (
-          <motion.ul className="mx-4 mt-4 flex flex-col gap-1 overflow-hidden rounded-2xl border border-ouro/30 bg-noite/95 p-4 backdrop-blur-lg md:hidden" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-            {LINKS.map((link, i) => (
-              <motion.li key={link.nome} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
-                <Link to={link.to} onClick={() => setAberto(false)} className="block rounded-lg px-4 py-3 font-titulo text-sm tracking-widest text-creme hover:bg-ouro/10 hover:text-ouro-claro">
-                  {link.nome}
-                </Link>
-              </motion.li>
-            ))}
-          </motion.ul>
+          <motion.div
+            className="overflow-hidden md:hidden"
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            transition={{ duration: 0.5, ease: SUAVE }}
+          >
+            <ul className="flex flex-col px-6 pb-8 pt-6">
+              {LINKS.map((link, i) => (
+                <motion.li
+                  key={link.nome}
+                  className="border-b border-linha"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 + i * 0.06, duration: 0.5, ease: SUAVE }}
+                >
+                  <Link to={link.to} onClick={() => setAberto(false)} className="flex items-baseline justify-between py-4 font-elegante text-3xl text-creme">
+                    {link.nome}
+                    <span className="font-texto text-[11px] text-creme/35">0{i + 1}</span>
+                  </Link>
+                </motion.li>
+              ))}
+            </ul>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.header>

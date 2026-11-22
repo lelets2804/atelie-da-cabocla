@@ -1,90 +1,131 @@
-import { useMemo } from 'react'
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { lazy, Suspense, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { ArrowRight } from 'lucide-react'
 
-const NOME = 'Ateliê da Cabocla'
+// O 3D só é baixado depois que a página aparece, para o site abrir rápido
+const Guia3D = lazy(() => import('./Guia3D'))
 
-function Estrelas({ quantidade = 45 }) {
-  const estrelas = useMemo(() => Array.from({ length: quantidade }, (_, i) => ({ id: i, left: Math.random() * 100, top: Math.random() * 100, tamanho: 2 + Math.random() * 4, duracao: 3 + Math.random() * 5, atraso: Math.random() * 5 })), [quantidade])
+const SUAVE = [0.22, 1, 0.36, 1]
 
-  return (
-    <div className="absolute inset-0 overflow-hidden">
-      {estrelas.map((e) => (
-        <motion.span key={e.id} className="absolute rounded-full bg-ouro-claro" style={{ left: `${e.left}%`, top: `${e.top}%`, width: e.tamanho, height: e.tamanho }} animate={{ opacity: [0.1, 1, 0.1], scale: [1, 1.6, 1], y: [0, -20, 0] }} transition={{ duration: e.duracao, delay: e.atraso, repeat: Infinity, ease: 'easeInOut' }} />
-      ))}
-    </div>
-  )
-}
+const LINHAS_TITULO = [
+  { texto: 'Feito à mão,' },
+  { texto: 'com fé' },
+  { texto: 'e axé.', destaque: true },
+]
 
-function Mandala({ duracao, reverso = false, opacidade = 0.3, escala = 1 }) {
-  return (
-    <motion.svg viewBox="0 0 400 400" className="pointer-events-none absolute h-[140vw] w-[140vw] max-h-255 max-w-255" style={{ opacity: opacidade, scale: escala }} animate={{ rotate: reverso ? -360 : 360 }} transition={{ duration: duracao, repeat: Infinity, ease: 'linear' }}>
-      <circle cx="200" cy="200" r="190" fill="none" stroke="#d4a24c" strokeWidth="1" strokeDasharray="4 10" />
-      <circle cx="200" cy="200" r="150" fill="none" stroke="#f0d28a" strokeWidth="0.8" />
-      {Array.from({ length: 12 }).map((_, i) => (
-        <ellipse key={i} cx="200" cy="200" rx="150" ry="40" fill="none" stroke="#d4a24c" strokeWidth="0.6" transform={`rotate(${i * 30} 200 200)`} />
-      ))}
-    </motion.svg>
-  )
-}
+const PILARES = [
+  { titulo: 'Feito à mão', texto: 'Cada peça é produzida uma a uma.' },
+  { titulo: 'Com fé e respeito', texto: 'Tradição em cada detalhe.' },
+  { titulo: 'Sob encomenda', texto: 'Personalizamos do seu jeito.' },
+]
 
 export default function Hero() {
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-10, 10]), { stiffness: 80, damping: 15 })
-  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [8, -8]), { stiffness: 80, damping: 15 })
-
-  function mover(e) {
-    const r = e.currentTarget.getBoundingClientRect()
-    mx.set((e.clientX - r.left) / r.width - 0.5)
-    my.set((e.clientY - r.top) / r.height - 0.5)
-  }
-
-  function sair() {
-    mx.set(0)
-    my.set(0)
-  }
+  const secao = useRef(null)
+  const { scrollYProgress } = useScroll({ target: secao, offset: ['start start', 'end start'] })
+  const subirTexto = useTransform(scrollYProgress, [0, 1], [0, -120])
+  const sumirTexto = useTransform(scrollYProgress, [0, 0.7], [1, 0])
+  const descer3D = useTransform(scrollYProgress, [0, 1], [0, 160])
+  const encolher3D = useTransform(scrollYProgress, [0, 1], [1, 0.85])
 
   return (
-    <motion.section onMouseMove={mover} onMouseLeave={sair} style={{ perspective: 1200 }} className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_center,var(--color-musgo),var(--color-noite)_70%)] px-6">
-      {/* Brilhos coloridos ao fundo */}
-      <motion.div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-verde-claro/30 blur-3xl" animate={{ x: [0, 60, 0], y: [0, 40, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }} />
-      <motion.div className="absolute -right-20 bottom-10 h-80 w-80 rounded-full bg-ouro/20 blur-3xl" animate={{ x: [0, -60, 0], y: [0, -40, 0] }} transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }} />
+    <section ref={secao} className="relative overflow-hidden">
+      {/* Halo bem discreto atrás da guia */}
+      <div className="pointer-events-none absolute right-[-10%] top-[10%] h-[70vh] w-[70vh] rounded-full bg-verde/15 blur-[120px]" />
 
-      <Estrelas />
+      <div className="relative mx-auto grid min-h-svh max-w-7xl grid-cols-1 items-center gap-6 px-6 pb-28 pt-28 lg:grid-cols-12 lg:pt-24">
+        {/* Texto */}
+        <motion.div className="relative z-10 lg:col-span-6" style={{ y: subirTexto, opacity: sumirTexto }}>
+          <motion.p
+            className="flex items-center gap-4 font-texto text-[11px] font-medium uppercase tracking-[0.32em] text-ouro"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.9, ease: SUAVE, delay: 0.2 }}
+          >
+            <span className="h-px w-10 bg-ouro/60" />
+            Artigos religiosos artesanais
+          </motion.p>
 
-      {/* Mandalas deitadas em 3D, girando em sentidos opostos */}
-      <div className="absolute inset-0 flex items-center justify-center" style={{ transform: 'rotateX(62deg)' }}>
-        <Mandala duracao={90} opacidade={0.3} />
-        <Mandala duracao={60} reverso opacidade={0.2} escala={0.7} />
+          <h1 className="mt-8 font-elegante text-[clamp(3.4rem,8vw,7.25rem)] font-medium leading-[0.92] tracking-[-0.02em] text-creme">
+            {LINHAS_TITULO.map((linha, i) => (
+              <span key={linha.texto} className="block overflow-hidden pb-[0.08em]">
+                <motion.span
+                  className={`block ${linha.destaque ? 'italic text-ouro-claro' : ''}`}
+                  initial={{ y: '110%' }}
+                  animate={{ y: 0 }}
+                  transition={{ duration: 1.1, ease: SUAVE, delay: 0.35 + i * 0.12 }}
+                >
+                  {linha.texto}
+                </motion.span>
+              </span>
+            ))}
+          </h1>
+
+          <motion.p
+            className="mt-8 max-w-md font-texto text-base leading-relaxed text-creme/65 sm:text-lg"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: SUAVE, delay: 0.9 }}
+          >
+            Guias, brajás, pulseiras e peças personalizadas, produzidas com cuidado para acompanhar a sua caminhada.
+          </motion.p>
+
+          <motion.div
+            className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: SUAVE, delay: 1.05 }}
+          >
+            <a
+              href="#colecao"
+              className="group inline-flex items-center gap-3 rounded-sm bg-creme px-7 py-4 font-texto text-xs font-semibold uppercase tracking-[0.2em] text-noite transition-colors duration-300 hover:bg-ouro-claro"
+            >
+              Ver coleção
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </a>
+            <Link
+              to="/#contato"
+              className="group relative font-texto text-xs font-semibold uppercase tracking-[0.2em] text-creme/80 transition-colors hover:text-creme"
+            >
+              Encomendar uma peça
+              <span className="absolute -bottom-1.5 left-0 h-px w-full origin-left bg-ouro/60 transition-transform duration-500 group-hover:scale-x-0" />
+            </Link>
+          </motion.div>
+        </motion.div>
+
+        {/* Guia em 3D */}
+        <motion.div
+          className="relative order-first h-[46svh] lg:order-0 lg:col-span-6 lg:h-[78svh]"
+          style={{ y: descer3D, scale: encolher3D }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.6, delay: 0.4 }}
+        >
+          <Suspense fallback={null}>
+            <Guia3D />
+          </Suspense>
+        </motion.div>
       </div>
 
-      {/* Conteúdo que acompanha o mouse */}
-      <motion.div className="relative z-10 text-center" style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}>
-        <motion.p className="mb-4 font-elegante text-lg italic tracking-[0.3em] text-ouro-claro sm:text-2xl" style={{ transform: 'translateZ(30px)' }} initial={{ opacity: 0, letterSpacing: '1em' }} animate={{ opacity: 1, letterSpacing: '0.3em' }} transition={{ duration: 1.5 }}>
-          artigos religiosos
-        </motion.p>
-
-        <h1 className="font-titulo text-4xl font-bold sm:text-6xl lg:text-8xl" style={{ transform: 'translateZ(80px)', filter: 'drop-shadow(0 0 18px rgba(212,162,76,0.35)) drop-shadow(0 10px 12px rgba(0,0,0,0.45))' }}>
-          {NOME.split('').map((letra, i) => (
-            <motion.span key={i} className="inline-block bg-linear-to-b from-ouro-claro to-ouro bg-clip-text text-transparent" initial={{ opacity: 0, y: 60, rotateX: -90 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ delay: 0.6 + i * 0.06, duration: 0.8, type: 'spring' }}>
-              {letra === ' ' ? '\u00A0' : letra}
-            </motion.span>
+      {/* Faixa de pilares no pé do hero */}
+      <motion.div
+        className="absolute inset-x-0 bottom-0 hidden border-t border-linha md:block"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 1.3 }}
+      >
+        <div className="mx-auto grid max-w-7xl grid-cols-3 divide-x divide-linha px-6">
+          {PILARES.map((p, i) => (
+            <div key={p.titulo} className="flex items-baseline gap-4 py-5 pl-6 first:pl-0">
+              <span className="font-elegante text-sm italic text-ouro">0{i + 1}</span>
+              <p className="font-texto text-sm text-creme/80">
+                {p.titulo}
+                <span className="text-creme/40"> — {p.texto}</span>
+              </p>
+            </div>
           ))}
-        </h1>
-
-        <motion.p className="mx-auto mt-6 max-w-xl font-elegante text-xl text-creme/80 sm:text-2xl" style={{ transform: 'translateZ(40px)' }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.2, duration: 1 }}>
-          Peças feitas com fé, cuidado e axé para acompanhar a sua caminhada.
-        </motion.p>
-
-        <motion.a href="#colecao" className="mt-10 inline-block rounded-full border border-ouro bg-musgo px-10 py-4 font-titulo text-sm tracking-widest text-ouro-claro" style={{ transform: 'translateZ(60px)', boxShadow: '0 6px 0 #8a6322, 0 14px 24px rgba(0,0,0,0.45)' }} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 2.8, duration: 0.8 }} whileHover={{ scale: 1.06, y: -3 }} whileTap={{ scale: 0.97, y: 5, boxShadow: '0 1px 0 #8a6322, 0 4px 10px rgba(0,0,0,0.45)' }}>
-          VER COLEÇÃO
-        </motion.a>
+        </div>
       </motion.div>
-
-      {/* Indicador de rolagem */}
-      <motion.div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-3xl text-ouro" animate={{ y: [0, 12, 0] }} transition={{ duration: 1.8, repeat: Infinity }}>
-        ⌄
-      </motion.div>
-    </motion.section>
+    </section>
   )
 }

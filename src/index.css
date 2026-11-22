@@ -1,23 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@400;500;600&family=Poppins:wght@300;400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-noite: #16241a;
-  --color-musgo: #2b4030;
-  --color-verde: #4f7a4a;
-  --color-verde-claro: #8fb58a;
-  --color-ouro: #d4a24c;
-  --color-ouro-claro: #f0d28a;
-  --color-creme: #fbf3e4;
-  --color-terracota: #b5533c;
+  /* Paleta: verde-mata profundo, latão envelhecido e papel cru */
+  --color-noite: #0e1511;
+  --color-musgo: #172019;
+  --color-verde: #4a6b4c;
+  --color-verde-claro: #9bb59a;
+  --color-ouro: #c4a06a;
+  --color-ouro-claro: #e3cfa6;
+  --color-creme: #f2ebde;
+  --color-terracota: #b8644a;
+  --color-ameixa: #1a231d;
+  --color-linha: rgb(242 235 222 / 0.12);
 
-  --font-titulo: 'Cinzel', serif;
-  --font-elegante: 'Cormorant Garamond', serif;
-  --font-texto: 'Poppins', sans-serif;
+  --font-titulo: 'Manrope', system-ui, sans-serif;
+  --font-elegante: 'Cormorant Garamond', Georgia, serif;
+  --font-texto: 'Manrope', system-ui, sans-serif;
+
+  --ease-suave: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-faixa: faixa 40s linear infinite;
+  @keyframes faixa {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
 }
 
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -25,4 +37,31 @@ body {
   color: var(--color-creme);
   font-family: var(--font-texto);
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-ouro);
+  color: var(--color-noite);
+}
+
+/* Textura de papel bem sutil sobre o site todo */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-ouro);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-faixa { animation: none; }
 }

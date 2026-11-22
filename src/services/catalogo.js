@@ -1,11 +1,9 @@
-import { PRODUTOS, TIPOS, LINHAS, salvarCatalogo } from '../data/produtos'
+import { supabase } from '../lib/supabase'
+import { PRODUTOS, TIPOS, LINHAS, IDS, carregarCatalogo } from '../data/produtos'
 
-// TEMPORÁRIO: quando o backend estiver pronto, trocar por chamadas à API, por exemplo:
-//   POST    URL_DA_API/produtos        (criar)
-//   PUT     URL_DA_API/produtos/:id    (editar)
-//   DELETE  URL_DA_API/produtos/:id    (excluir)
-//   POST    URL_DA_API/produtos/:id/foto   (enviar a foto)
-//   GET/POST/PUT/DELETE  URL_DA_API/tipos, /linhas e /linhas/:linha/divisoes
+const BUCKET = 'produtos'
+
+/* ----------------------------- Utilidades ----------------------------- */
 
 function normalizar(texto) {
   return texto.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -19,98 +17,153 @@ function validar(nome, lista, ignorar) {
   return null
 }
 
-function gravar() {
+function textoProdutos(n) {
+  return `${n} ${n === 1 ? 'produto' : 'produtos'}`
+}
+
+function erroAmigavel(erro) {
+  console.error('Erro no catálogo:', erro)
+  const mensagem = (erro?.message || '').toLowerCase()
+
+  if (erro?.code === '23505') return 'Já existe um item com esse nome.'
+  if (erro?.code === '23503') return 'Este item ainda está em uso e não pode ser removido.'
+  if (erro?.code === '42501' || mensagem.includes('row-level security')) {
+    return 'Sem permissão. Entre com a conta de administradora.'
+  }
+  if (mensagem.includes('failed to fetch')) {
+    return 'Sem conexão com o servidor. Verifique sua internet e tente de novo.'
+  }
+  return `Não foi possível salvar: ${erro?.message || 'erro desconhecido.'}`
+}
+
+// Executa a gravação, confere se algo realmente mudou e recarrega o catálogo
+async function aplicar(consulta) {
   try {
-    salvarCatalogo()
-    return { ok: true }
-  } catch {
-    return {
-      ok: false,
-      erro: 'Não coube no armazenamento do navegador (isso vale só para o modo de teste).',
+    const { data, error } = await consulta
+    if (error) return { ok: false, erro: erroAmigavel(error) }
+    if (Array.isArray(data) && data.length === 0) {
+      return { ok: false, erro: 'Nada foi alterado. Entre com a conta de administradora e tente de novo.' }
     }
+    await carregarCatalogo()
+    return { ok: true }
+  } catch (erro) {
+    return { ok: false, erro: erroAmigavel(erro) }
   }
 }
 
-// Renomeia uma chave do objeto mantendo a ordem
-function renomearChave(objeto, antiga, nova) {
-  const entradas = Object.entries(objeto)
-  entradas.forEach(([chave]) => delete objeto[chave])
-  entradas.forEach(([chave, valor]) => {
-    objeto[chave === antiga ? nova : chave] = valor
-  })
+/* ------------------------------- Fotos -------------------------------- */
+
+async function enviarFoto(imagemBase64) {
+  const resposta = await fetch(imagemBase64)
+  const arquivo = await resposta.blob()
+  const caminho = `${crypto.randomUUID()}.jpg`
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(caminho, arquivo, { contentType: 'image/jpeg', cacheControl: '31536000' })
+  if (error) throw error
+
+  return supabase.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl
 }
 
-function textoProdutos(n) {
-  return `${n} ${n === 1 ? 'produto' : 'produtos'}`
+function caminhoDaFoto(url) {
+  if (!url) return null
+  const marca = `/storage/v1/object/public/${BUCKET}/`
+  const indice = url.indexOf(marca)
+  return indice >= 0 ? decodeURIComponent(url.slice(indice + marca.length)) : null
+}
+
+// Apaga a foto antiga do Storage (se falhar, não atrapalha o resto)
+async function apagarFoto(url) {
+  const caminho = caminhoDaFoto(url)
+  if (!caminho) return
+  try {
+    await supabase.storage.from(BUCKET).remove([caminho])
+  } catch {
+    // sem problema
+  }
 }
 
 /* ---------------------------- Produtos ---------------------------- */
 
 // Cria o produto (sem id) ou atualiza o existente (com id)
 // Devolve { ok: true } ou { ok: false, erro: '...' }
-export function salvarProduto(dados) {
-  const indice = PRODUTOS.findIndex((p) => p.id === dados.id)
-  const anterior = indice >= 0 ? PRODUTOS[indice] : null
-
-  if (anterior) {
-    PRODUTOS[indice] = { ...anterior, ...dados }
-  } else {
-    PRODUTOS.unshift({ ...dados, id: Date.now() })
+export async function salvarProduto(dados) {
+  const tipoId = IDS.tipos[dados.tipo]
+  const linhaId = IDS.linhas[dados.linha]
+  const divisaoId = IDS.divisoes[`${dados.linha}|${dados.divisao}`]
+  if (!tipoId || !linhaId || !divisaoId) {
+    return { ok: false, erro: 'Tipo, linha ou divisão não encontrados. Recarregue a página.' }
   }
+
+  const anterior = dados.id ? PRODUTOS.find((p) => p.id === dados.id) : null
 
   try {
-    salvarCatalogo()
-    return { ok: true }
-  } catch {
-    // Sem espaço no navegador: desfaz a alteração
-    if (anterior) PRODUTOS[indice] = anterior
-    else PRODUTOS.shift()
-    return {
-      ok: false,
-      erro: 'Não coube no armazenamento do navegador. Use uma foto menor ou tire fotos de outros produtos (isso vale só para o modo de teste).',
+    // Foto nova (vem como data:image...) vai para o Storage; as demais seguem como estão
+    let fotoUrl = dados.imagem || null
+    if (fotoUrl && fotoUrl.startsWith('data:')) {
+      fotoUrl = await enviarFoto(fotoUrl)
     }
+
+    const linha = {
+      nome: dados.nome,
+      tipo_id: tipoId,
+      linha_id: linhaId,
+      divisao_id: divisaoId,
+      preco: dados.preco,
+      cores: dados.cores,
+      destaque: !!dados.destaque,
+      foto_url: fotoUrl,
+    }
+
+    const consulta = anterior
+      ? supabase.from('produtos').update(linha).eq('id', anterior.id).select('id')
+      : supabase.from('produtos').insert(linha).select('id')
+
+    const resultado = await aplicar(consulta)
+
+    // Se a foto mudou ou foi removida, limpa a antiga
+    if (resultado.ok && anterior?.imagem && anterior.imagem !== fotoUrl) {
+      await apagarFoto(anterior.imagem)
+    }
+    return resultado
+  } catch (erro) {
+    return { ok: false, erro: erroAmigavel(erro) }
   }
 }
 
-export function excluirProduto(id) {
-  const indice = PRODUTOS.findIndex((p) => p.id === id)
-  if (indice >= 0) PRODUTOS.splice(indice, 1)
-  salvarCatalogo()
+export async function excluirProduto(id) {
+  const anterior = PRODUTOS.find((p) => p.id === id)
+  const resultado = await aplicar(supabase.from('produtos').delete().eq('id', id).select('id'))
+  if (resultado.ok && anterior?.imagem) await apagarFoto(anterior.imagem)
+  return resultado
 }
 
-export function alternarDestaque(id) {
+export async function alternarDestaque(id) {
   const produto = PRODUTOS.find((p) => p.id === id)
-  if (produto) {
-    produto.destaque = !produto.destaque
-    salvarCatalogo()
-  }
+  if (!produto) return { ok: false, erro: 'Produto não encontrado.' }
+  return aplicar(
+    supabase.from('produtos').update({ destaque: !produto.destaque }).eq('id', id).select('id')
+  )
 }
 
 /* ------------------------------ Tipos ------------------------------ */
 
-export function adicionarTipo(nome) {
+export async function adicionarTipo(nome) {
   const erro = validar(nome, TIPOS)
   if (erro) return { ok: false, erro }
-  TIPOS.push(nome.trim())
-  return gravar()
+  return aplicar(supabase.from('tipos').insert({ nome: nome.trim() }).select('id'))
 }
 
-export function renomearTipo(antigo, novo) {
+export async function renomearTipo(antigo, novo) {
   const erro = validar(novo, TIPOS, antigo)
   if (erro) return { ok: false, erro }
-
-  const indice = TIPOS.indexOf(antigo)
-  if (indice < 0) return { ok: false, erro: 'Item não encontrado.' }
-
-  const nome = novo.trim()
-  TIPOS[indice] = nome
-  PRODUTOS.forEach((p) => {
-    if (p.tipo === antigo) p.tipo = nome
-  })
-  return gravar()
+  const id = IDS.tipos[antigo]
+  if (!id) return { ok: false, erro: 'Item não encontrado.' }
+  return aplicar(supabase.from('tipos').update({ nome: novo.trim() }).eq('id', id).select('id'))
 }
 
-export function removerTipo(nome) {
+export async function removerTipo(nome) {
   const usados = PRODUTOS.filter((p) => p.tipo === nome).length
   if (usados > 0) {
     return {
@@ -118,34 +171,28 @@ export function removerTipo(nome) {
       erro: `Existem ${textoProdutos(usados)} do tipo "${nome}". Mude ou exclua essas peças antes de remover.`,
     }
   }
-  const indice = TIPOS.indexOf(nome)
-  if (indice >= 0) TIPOS.splice(indice, 1)
-  return gravar()
+  const id = IDS.tipos[nome]
+  if (!id) return { ok: false, erro: 'Item não encontrado.' }
+  return aplicar(supabase.from('tipos').delete().eq('id', id).select('id'))
 }
 
 /* ------------------------------ Linhas ----------------------------- */
 
-export function adicionarLinha(nome) {
+export async function adicionarLinha(nome) {
   const erro = validar(nome, Object.keys(LINHAS))
   if (erro) return { ok: false, erro }
-  LINHAS[nome.trim()] = []
-  return gravar()
+  return aplicar(supabase.from('linhas').insert({ nome: nome.trim() }).select('id'))
 }
 
-export function renomearLinha(antiga, nova) {
+export async function renomearLinha(antiga, nova) {
   const erro = validar(nova, Object.keys(LINHAS), antiga)
   if (erro) return { ok: false, erro }
-  if (!LINHAS[antiga]) return { ok: false, erro: 'Item não encontrado.' }
-
-  const nome = nova.trim()
-  renomearChave(LINHAS, antiga, nome)
-  PRODUTOS.forEach((p) => {
-    if (p.linha === antiga) p.linha = nome
-  })
-  return gravar()
+  const id = IDS.linhas[antiga]
+  if (!id) return { ok: false, erro: 'Item não encontrado.' }
+  return aplicar(supabase.from('linhas').update({ nome: nova.trim() }).eq('id', id).select('id'))
 }
 
-export function removerLinha(nome) {
+export async function removerLinha(nome) {
   const divisoes = (LINHAS[nome] || []).length
   if (divisoes > 0) {
     return {
@@ -160,41 +207,36 @@ export function removerLinha(nome) {
       erro: `Existem ${textoProdutos(usados)} na linha "${nome}". Mude ou exclua essas peças antes de remover.`,
     }
   }
-  delete LINHAS[nome]
-  return gravar()
+  const id = IDS.linhas[nome]
+  if (!id) return { ok: false, erro: 'Item não encontrado.' }
+  return aplicar(supabase.from('linhas').delete().eq('id', id).select('id'))
 }
 
 /* ---------------------------- Divisões ----------------------------- */
 
-export function adicionarDivisao(linha, nome) {
+export async function adicionarDivisao(linha, nome) {
   const lista = LINHAS[linha]
   if (!lista) return { ok: false, erro: 'Linha não encontrada.' }
 
   const erro = validar(nome, lista)
   if (erro) return { ok: false, erro }
-  lista.push(nome.trim())
-  return gravar()
+  return aplicar(
+    supabase.from('divisoes').insert({ linha_id: IDS.linhas[linha], nome: nome.trim() }).select('id')
+  )
 }
 
-export function renomearDivisao(linha, antiga, nova) {
+export async function renomearDivisao(linha, antiga, nova) {
   const lista = LINHAS[linha]
   if (!lista) return { ok: false, erro: 'Linha não encontrada.' }
 
   const erro = validar(nova, lista, antiga)
   if (erro) return { ok: false, erro }
-
-  const indice = lista.indexOf(antiga)
-  if (indice < 0) return { ok: false, erro: 'Item não encontrado.' }
-
-  const nome = nova.trim()
-  lista[indice] = nome
-  PRODUTOS.forEach((p) => {
-    if (p.linha === linha && p.divisao === antiga) p.divisao = nome
-  })
-  return gravar()
+  const id = IDS.divisoes[`${linha}|${antiga}`]
+  if (!id) return { ok: false, erro: 'Item não encontrado.' }
+  return aplicar(supabase.from('divisoes').update({ nome: nova.trim() }).eq('id', id).select('id'))
 }
 
-export function removerDivisao(linha, nome) {
+export async function removerDivisao(linha, nome) {
   const lista = LINHAS[linha]
   if (!lista) return { ok: false, erro: 'Linha não encontrada.' }
 
@@ -205,7 +247,7 @@ export function removerDivisao(linha, nome) {
       erro: `Existem ${textoProdutos(usados)} em "${nome}". Mude ou exclua essas peças antes de remover.`,
     }
   }
-  const indice = lista.indexOf(nome)
-  if (indice >= 0) lista.splice(indice, 1)
-  return gravar()
+  const id = IDS.divisoes[`${linha}|${nome}`]
+  if (!id) return { ok: false, erro: 'Item não encontrado.' }
+  return aplicar(supabase.from('divisoes').delete().eq('id', id).select('id'))
 }
